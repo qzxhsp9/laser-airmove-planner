@@ -116,6 +116,29 @@ if (result.success) {
 }
 ```
 
+## 命令行工具
+
+配置并编译时打开 `AIRMOVE_BUILD_TOOLS` 后，会生成：
+
+```powershell
+.\build\Debug\laser_airmove_plan.exe
+```
+
+使用示例：
+
+```powershell
+.\build\Debug\laser_airmove_plan.exe --config examples\simple_box_config.json --output airmove_cli_output
+```
+
+输出目录包含：
+
+```text
+raw_path.csv
+smoothed_path.csv
+trajectory.csv
+summary.json
+```
+
 ## 后续工程路线
 
 ### 1. 几何避障增强

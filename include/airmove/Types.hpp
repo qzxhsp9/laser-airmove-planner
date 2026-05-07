@@ -64,4 +64,15 @@ struct PlanningResult {
     std::string message;
 };
 
+struct BoxObstacle {
+    Vec3 center{0.0, 0.0, 0.0};
+    Vec3 size{1.0, 1.0, 1.0};
+};
+
+struct PlanningProblem {
+    PlannerConfig planner_config;
+    PlanningRequest request;
+    std::vector<BoxObstacle> box_obstacles;
+};
+
 } // namespace airmove

@@ -14,9 +14,11 @@ vcpkg_installed/
 
 # Demo and benchmark outputs
 airmove_demo_output/
+airmove_*_output/
 *.csv
 *.json
 !vcpkg.json
+!examples/*.json
 
 # IDE/editor files
 .vs/

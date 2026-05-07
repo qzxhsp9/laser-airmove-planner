@@ -169,8 +169,9 @@ Path3 AirMovePlanner::planWithOMPL(const Vec3& start,
     path.interpolate();
 
     Path3 result;
-    result.reserve(path.getStateCount());
-    for (std::size_t i = 0; i < path.getStateCount(); ++i) {
+    const auto state_count = path.getStateCount();
+    result.reserve(static_cast<std::size_t>(state_count));
+    for (unsigned int i = 0; i < state_count; ++i) {
         const auto* rv = path.getState(i)->as<ob::RealVectorStateSpace::StateType>();
         result.emplace_back(rv->values[0], rv->values[1], rv->values[2]);
     }

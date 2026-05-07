@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(AIRMOVE_BUILD_EXAMPLES "Build examples" ON)
+option(AIRMOVE_BUILD_TOOLS "Build command line tools" ON)
 option(AIRMOVE_BUILD_TESTS "Build tests" OFF)
 
 find_package(ompl REQUIRED)
@@ -20,6 +21,7 @@ add_library(airmove_planner
     src/BSpline.cpp
     src/RuckigExecutor.cpp
     src/StlMeshLoader.cpp
+    src/JsonIO.cpp
 )
 
 add_library(airmove::planner ALIAS airmove_planner)
@@ -34,6 +36,7 @@ target_link_libraries(airmove_planner
     PUBLIC
         ompl::ompl
         Eigen3::Eigen
+        nlohmann_json::nlohmann_json
         ruckig::ruckig
         fcl
 )
@@ -46,6 +49,11 @@ target_compile_options(airmove_planner PRIVATE
 if(AIRMOVE_BUILD_EXAMPLES)
     add_executable(single_airmove_demo examples/single_airmove_demo.cpp)
     target_link_libraries(single_airmove_demo PRIVATE airmove::planner)
+endif()
+
+if(AIRMOVE_BUILD_TOOLS)
+    add_executable(laser_airmove_plan tools/laser_airmove_plan.cpp)
+    target_link_libraries(laser_airmove_plan PRIVATE airmove::planner)
 endif()
 
 if(AIRMOVE_BUILD_TESTS)
