@@ -1,39 +1,52 @@
-# Laser Air-Move Planner Windows Setup Guide
+# Laser Air-Move Planner Windows 工程搭建指南
 
-This document records the recommended Windows engineering setup for this project.
-
-## 1. Prerequisites
-
-Install the following tools:
+本文档记录本项目在 Windows 环境下的推荐工程搭建流程，重点覆盖：
 
 - Visual Studio 2022
-- CMake 3.20 or newer
+- CMake
+- vcpkg
+- OMPL / FCL / Eigen / Ruckig
+- CMake GUI 与 Visual Studio 生成器
+- 常见构建错误排查
+
+## 1. 基础工具
+
+需要安装：
+
+- Visual Studio 2022
+- CMake 3.20 或更高版本
 - Git
 - vcpkg
 - 7-Zip
 
-Visual Studio 2022 must include:
+Visual Studio 2022 需要勾选以下组件：
 
-- Desktop development with C++
-- MSVC v143 x64/x86 build tools
+- 使用 C++ 的桌面开发
+- MSVC v143 x64/x86 生成工具
 - Windows 10/11 SDK
 
-Recommended 7-Zip path:
+推荐 7-Zip 安装路径：
 
 ```powershell
 C:\Program Files\7-Zip
 ```
 
-Add it to the current PowerShell session when needed:
+如果当前 PowerShell 找不到 `7z`，可以临时加入 `PATH`：
 
 ```powershell
 $env:Path = "C:\Program Files\7-Zip;$env:Path"
 where.exe 7z
 ```
 
-## 2. Install vcpkg
+确认输出中包含：
 
-Example installation path:
+```text
+C:\Program Files\7-Zip\7z.exe
+```
+
+## 2. 安装 vcpkg
+
+示例安装路径：
 
 ```powershell
 cd D:\software
@@ -42,24 +55,30 @@ cd vcpkg
 .\bootstrap-vcpkg.bat
 ```
 
-Set `VCPKG_ROOT`:
+设置 `VCPKG_ROOT`：
 
 ```powershell
 setx VCPKG_ROOT D:\software\vcpkg
 ```
 
-Open a new PowerShell window and verify:
+重新打开 PowerShell 后验证：
 
 ```powershell
 echo $env:VCPKG_ROOT
 Test-Path "$env:VCPKG_ROOT\vcpkg.exe"
 ```
 
-## 3. Proxy Notes
+`Test-Path` 应返回：
 
-If vcpkg downloads from GitHub fail, explicitly set proxy variables.
+```text
+True
+```
 
-Example:
+## 3. 代理配置说明
+
+如果 vcpkg 从 GitHub 下载依赖或工具时失败，可以显式设置代理。
+
+示例：
 
 ```powershell
 $env:HTTP_PROXY = "http://127.0.0.1:10808"
@@ -67,45 +86,55 @@ $env:HTTPS_PROXY = "http://127.0.0.1:10808"
 Test-NetConnection 127.0.0.1 -Port 10808
 ```
 
-Use `http://` for both variables unless your proxy is truly an HTTPS proxy.
+除非你的代理确实是 HTTPS 代理，否则 `HTTP_PROXY` 和 `HTTPS_PROXY` 都建议使用 `http://` 前缀。
 
-If vcpkg keeps downloading tool binaries such as `7zr.exe` or PowerShell Core and fails, install those tools locally and then try:
+如果 vcpkg 一直尝试下载 `7zr.exe`、PowerShell Core 等工具并失败，可以优先在本机安装这些工具，然后设置：
 
 ```powershell
 $env:VCPKG_FORCE_SYSTEM_BINARIES = "1"
 ```
 
-## 4. Install Dependencies
+## 4. 安装项目依赖
 
-The project uses vcpkg manifest mode. Dependencies are declared in `vcpkg.json`:
+本项目使用 vcpkg manifest 模式。依赖声明在仓库根目录的 `vcpkg.json` 中：
 
-- ompl
-- fcl
-- eigen3
-- ruckig
+- `ompl`
+- `fcl`
+- `eigen3`
+- `ruckig`
 
-Install dependencies:
+安装依赖：
 
 ```powershell
 cd D:\data\workspace\github\laser-airmove-planner
 & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows
 ```
 
-If PowerShell reports an unexpected token near `vcpkg.exe`, use the call operator and quotes exactly as shown above.
+注意 PowerShell 中不能直接写：
 
-## 5. Configure With Visual Studio Generator
+```powershell
+$env:VCPKG_ROOT\vcpkg.exe
+```
 
-Using the Visual Studio generator is recommended on Windows because it loads the MSVC and Windows SDK environment correctly.
+应使用调用运算符 `&` 和引号：
 
-Clean any old build directory first:
+```powershell
+& "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows
+```
+
+## 5. 使用 Visual Studio 生成器配置 CMake
+
+Windows 下推荐使用 Visual Studio 生成器。它会自动处理 MSVC 和 Windows SDK 环境，避免 `kernel32.lib` 等系统库找不到的问题。
+
+如果已有旧的构建目录，先删除：
 
 ```powershell
 Remove-Item -Recurse -Force build
 ```
 
-If Visual Studio is open and files under `build\.vs` are locked, close Visual Studio and retry. Alternatively use a fresh build directory.
+如果 Visual Studio 正在打开该解决方案，可能会锁定 `build\.vs` 下的数据库文件。此时先关闭 Visual Studio，再删除构建目录。
 
-Configure:
+配置命令：
 
 ```powershell
 $toolchain = Join-Path $env:VCPKG_ROOT "scripts\buildsystems\vcpkg.cmake"
@@ -119,15 +148,15 @@ cmake -S . -B build `
   -DAIRMOVE_BUILD_TESTS=ON
 ```
 
-Generated solution:
+成功后会生成：
 
 ```text
 build\laser_airmove_planner.sln
 ```
 
-## 6. Configure With CMake GUI
+## 6. 使用 CMake GUI 配置
 
-Set:
+CMake GUI 中设置：
 
 ```text
 Where is the source code:
@@ -137,7 +166,7 @@ Where to build the binaries:
 D:/data/workspace/github/laser-airmove-planner/build
 ```
 
-Add entries before pressing Configure:
+点击 `Add Entry`，新增：
 
 ```text
 Name: CMAKE_TOOLCHAIN_FILE
@@ -145,60 +174,66 @@ Type: FILEPATH
 Value: D:/software/vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
 
+再新增：
+
 ```text
 Name: VCPKG_TARGET_TRIPLET
 Type: STRING
 Value: x64-windows
 ```
 
-Then press:
+然后按顺序执行：
 
-1. Configure
-2. Select `Visual Studio 17 2022`
-3. Select platform `x64`
-4. Configure again if needed
-5. Generate
-6. Open Project
+1. 点击 `Configure`
+2. 生成器选择 `Visual Studio 17 2022`
+3. 平台选择 `x64`
+4. 如有红色配置项，继续点击 `Configure`
+5. 点击 `Generate`
+6. 点击 `Open Project`
 
-## 7. Build
+如果忘记设置 `CMAKE_TOOLCHAIN_FILE`，CMake 通常会报找不到 OMPL。
 
-Command line:
+## 7. 编译
+
+命令行编译：
 
 ```powershell
 cmake --build build --config Debug
 ```
 
-Or open:
+也可以打开：
 
 ```text
 build\laser_airmove_planner.sln
 ```
 
-Then build the solution in Visual Studio with:
+在 Visual Studio 中选择：
 
 ```text
 Debug | x64
 ```
 
-## 8. Run Tests
+然后生成解决方案。
+
+## 8. 运行测试
 
 ```powershell
 ctest --test-dir build -C Debug --output-on-failure
 ```
 
-Expected result:
+期望结果：
 
 ```text
 100% tests passed
 ```
 
-## 9. Run Demo
+## 9. 运行示例
 
 ```powershell
 .\build\Debug\single_airmove_demo.exe
 ```
 
-The demo writes:
+示例会生成：
 
 ```text
 airmove_demo_output\raw_path.csv
@@ -207,49 +242,67 @@ airmove_demo_output\trajectory.csv
 airmove_demo_output\summary.json
 ```
 
-These files are local generated artifacts and are ignored by Git.
+这些文件是本地生成产物，不需要提交到 Git。
 
-## 10. Common Errors
+## 10. 常见问题
 
-### CMake cannot find OMPL
+### 10.1 CMake 找不到 OMPL
 
-Error:
+典型错误：
 
 ```text
 Could not find a package configuration file provided by "ompl"
 ompl_DIR-NOTFOUND
 ```
 
-Cause: CMake was not configured with vcpkg toolchain.
+原因：
 
-Fix:
+CMake 没有使用 vcpkg toolchain。
+
+处理方式：
 
 ```powershell
 $toolchain = Join-Path $env:VCPKG_ROOT "scripts\buildsystems\vcpkg.cmake"
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-### CMake cannot find kernel32.lib
+也可以检查 OMPL 是否已经安装：
 
-Error:
+```powershell
+Test-Path "D:\software\vcpkg\installed\x64-windows\share\ompl\omplConfig.cmake"
+```
+
+如果使用 manifest 模式，也可能安装在：
+
+```text
+build\vcpkg_installed\x64-windows\share\ompl\omplConfig.cmake
+```
+
+### 10.2 找不到 kernel32.lib
+
+典型错误：
 
 ```text
 LINK : fatal error LNK1104: cannot open file 'kernel32.lib'
 ```
 
-Cause: Ninja or command shell was used without a loaded MSVC/Windows SDK environment.
+原因：
 
-Fix: use the Visual Studio generator:
+普通 PowerShell 或 Ninja 环境没有加载 MSVC / Windows SDK 的库路径。
+
+推荐处理方式：
+
+使用 Visual Studio 生成器：
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="$toolchain"
 ```
 
-Or start a Visual Studio developer shell before using Ninja.
+如果坚持使用 Ninja，需要先进入 Visual Studio 开发者环境。
 
-### Ruckig target references nlohmann_json
+### 10.3 Ruckig 报 nlohmann_json target not found
 
-Error:
+典型错误：
 
 ```text
 The link interface of target "ruckig::ruckig" contains:
@@ -257,42 +310,70 @@ nlohmann_json::nlohmann_json
 but the target was not found
 ```
 
-Fix: ensure `CMakeLists.txt` contains:
+处理方式：
+
+确保 `CMakeLists.txt` 中先加载 `nlohmann_json`：
 
 ```cmake
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(ruckig REQUIRED)
 ```
 
-### Cannot open ompl.lib
+### 10.4 链接时找不到 ompl.lib
 
-Error:
+典型错误：
 
 ```text
 LINK : fatal error LNK1104: cannot open file 'ompl.lib'
 ```
 
-Fix: link the imported target, not the raw library name:
+原因：
+
+项目链接了裸库名 `ompl`，但 vcpkg 导出的 CMake target 是 `ompl::ompl`。
+
+处理方式：
 
 ```cmake
 target_link_libraries(airmove_planner PUBLIC ompl::ompl)
 ```
 
-### Build directory cannot be deleted
+### 10.5 无法删除 build 目录
 
-Error:
+典型错误：
 
 ```text
 The process cannot access the file because it is being used by another process
 ```
 
-Cause: Visual Studio keeps database files under `build\.vs` open.
+原因：
 
-Fix: close Visual Studio and retry, or use another build directory.
+Visual Studio 正在占用 `build\.vs` 下的索引数据库。
 
-## 11. Git Hygiene
+处理方式：
 
-The following are local artifacts and should not be committed:
+- 关闭 Visual Studio 后重试
+- 或换一个新的构建目录
+
+### 10.6 vcpkg 下载 7zr.exe 或 PowerShell Core 失败
+
+典型现象：
+
+```text
+A suitable version of 7zip was not found
+Download timed out
+curl operation failed
+```
+
+处理方式：
+
+1. 确认 7-Zip 已安装并加入 `PATH`
+2. 确认代理端口可用
+3. 显式设置 `HTTP_PROXY` 和 `HTTPS_PROXY`
+4. 必要时设置 `VCPKG_FORCE_SYSTEM_BINARIES=1`
+
+## 11. Git 注意事项
+
+以下是本地生成产物，不应提交：
 
 ```text
 .vs/
@@ -302,7 +383,7 @@ vcpkg_installed/
 airmove_demo_output/
 ```
 
-The following should be committed:
+以下内容应提交：
 
 ```text
 CMakeLists.txt
