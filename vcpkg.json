@@ -1,0 +1,11 @@
+{
+  "name": "laser-airmove-planner",
+  "version-string": "0.1.0",
+  "description": "Single-segment non-cutting laser head air-move obstacle avoidance using OMPL, FCL, B-spline and Ruckig.",
+  "dependencies": [
+    "ompl",
+    "fcl",
+    "eigen3",
+    "ruckig"
+  ]
+}
