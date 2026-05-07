@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 from typing import Iterable
 
@@ -22,12 +23,16 @@ def import_matplotlib():
 
 
 def read_points_csv(path: Path) -> list[tuple[float, float, float]]:
+    if not path.exists():
+        return []
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         return [(float(r["x"]), float(r["y"]), float(r["z"])) for r in reader]
 
 
 def read_trajectory_csv(path: Path) -> dict[str, list[float]]:
+    if not path.exists():
+        return {}
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         data: dict[str, list[float]] = {name: [] for name in reader.fieldnames or []}
@@ -74,6 +79,39 @@ def read_ascii_stl_triangles(path: Path) -> list[list[tuple[float, float, float]
     return triangles
 
 
+def cylinder_side_faces(
+    center: Iterable[float], radius: float, height: float, segments: int = 32
+) -> list[list[tuple[float, float, float]]]:
+    cx, cy, cz = center
+    z0 = cz - height * 0.5
+    z1 = cz + height * 0.5
+    faces: list[list[tuple[float, float, float]]] = []
+    for i in range(segments):
+        a0 = 2.0 * math.pi * i / segments
+        a1 = 2.0 * math.pi * (i + 1) / segments
+        p0 = (cx + radius * math.cos(a0), cy + radius * math.sin(a0), z0)
+        p1 = (cx + radius * math.cos(a1), cy + radius * math.sin(a1), z0)
+        p2 = (cx + radius * math.cos(a1), cy + radius * math.sin(a1), z1)
+        p3 = (cx + radius * math.cos(a0), cy + radius * math.sin(a0), z1)
+        faces.append([p0, p1, p2, p3])
+    return faces
+
+
+def sphere_points(
+    center: Iterable[float], radius: float, rings: int = 8, segments: int = 24
+) -> list[tuple[float, float, float]]:
+    cx, cy, cz = center
+    points: list[tuple[float, float, float]] = []
+    for r in range(1, rings):
+        phi = math.pi * r / rings
+        z = cz + radius * math.cos(phi)
+        rr = radius * math.sin(phi)
+        for s in range(segments):
+            theta = 2.0 * math.pi * s / segments
+            points.append((cx + rr * math.cos(theta), cy + rr * math.sin(theta), z))
+    return points
+
+
 def set_axes_equal(ax, points: list[tuple[float, float, float]]) -> None:
     if not points:
         return
@@ -101,12 +139,22 @@ def collect_obstacle_faces(config: dict, config_path: Path) -> list[list[tuple[f
     for obstacle in config.get("obstacles", []):
         if obstacle.get("type") == "box":
             faces.extend(box_faces(obstacle["center"], obstacle["size"]))
+        elif obstacle.get("type") == "cylinder":
+            faces.extend(cylinder_side_faces(obstacle["center"], obstacle["radius"], obstacle["height"]))
         elif obstacle.get("type") == "ascii_stl":
             stl_path = Path(obstacle["file"])
             if not stl_path.is_absolute():
                 stl_path = base_dir / stl_path
             faces.extend(read_ascii_stl_triangles(stl_path))
     return faces
+
+
+def collect_sphere_samples(config: dict) -> list[tuple[float, float, float]]:
+    points: list[tuple[float, float, float]] = []
+    for obstacle in config.get("obstacles", []):
+        if obstacle.get("type") == "sphere":
+            points.extend(sphere_points(obstacle["center"], obstacle["radius"]))
+    return points
 
 
 def add_xy_obstacle_patches(plt, ax, config: dict) -> None:
@@ -146,13 +194,15 @@ def add_xy_obstacle_patches(plt, ax, config: dict) -> None:
             ax.add_patch(patch)
 
 
-def plot_path_3d(config: dict, config_path: Path, raw, smooth, output: Path) -> None:
+def plot_path_3d(config: dict, config_path: Path, raw, shortcut, smooth, output: Path) -> None:
     plt, Poly3DCollection = import_matplotlib()
     fig = plt.figure(figsize=(9, 7))
     ax = fig.add_subplot(111, projection="3d")
 
     if raw:
         ax.plot(*zip(*raw), color="#777777", linewidth=1.2, label="raw path")
+    if shortcut:
+        ax.plot(*zip(*shortcut), color="#E69F00", linewidth=1.6, linestyle="--", label="shortcut path")
     if smooth:
         ax.plot(*zip(*smooth), color="#0072B2", linewidth=2.0, label="smoothed path")
 
@@ -163,13 +213,17 @@ def plot_path_3d(config: dict, config_path: Path, raw, smooth, output: Path) -> 
         )
         ax.add_collection3d(collection)
 
+    sphere_samples = collect_sphere_samples(config)
+    if sphere_samples:
+        ax.scatter(*zip(*sphere_samples), color="#D55E00", s=4, alpha=0.16, label="sphere obstacle")
+
     request = config.get("request", {})
     if "start" in request:
         ax.scatter(*request["start"]["xyz"], color="#009E73", s=50, label="start")
     if "goal" in request:
         ax.scatter(*request["goal"]["xyz"], color="#CC79A7", s=50, label="goal")
 
-    all_points = list(raw) + list(smooth)
+    all_points = list(raw) + list(shortcut) + list(smooth) + sphere_samples
     for face in faces:
         all_points.extend(face)
     set_axes_equal(ax, all_points)
@@ -183,13 +237,16 @@ def plot_path_3d(config: dict, config_path: Path, raw, smooth, output: Path) -> 
     plt.close(fig)
 
 
-def plot_path_xy(config: dict, config_path: Path, raw, smooth, output: Path) -> None:
+def plot_path_xy(config: dict, config_path: Path, raw, shortcut, smooth, output: Path) -> None:
     plt, _ = import_matplotlib()
     fig, ax = plt.subplots(figsize=(8, 7))
 
     if raw:
         xs, ys, _ = zip(*raw)
         ax.plot(xs, ys, color="#777777", linewidth=1.2, label="raw path")
+    if shortcut:
+        xs, ys, _ = zip(*shortcut)
+        ax.plot(xs, ys, color="#E69F00", linewidth=1.6, linestyle="--", label="shortcut path")
     if smooth:
         xs, ys, _ = zip(*smooth)
         ax.plot(xs, ys, color="#0072B2", linewidth=2.0, label="smoothed path")
@@ -202,6 +259,58 @@ def plot_path_xy(config: dict, config_path: Path, raw, smooth, output: Path) -> 
     ax.set_title("Air-Move Path XY View")
     ax.grid(True, linewidth=0.4, alpha=0.4)
     ax.legend(loc="best")
+    fig.tight_layout()
+    fig.savefig(output, dpi=160)
+    plt.close(fig)
+
+
+def plot_path_lengths(summary: dict, output: Path) -> None:
+    plt, _ = import_matplotlib()
+    labels = ["raw", "shortcut", "smooth"]
+    values = [
+        float(summary.get("raw_path_length", 0.0)),
+        float(summary.get("shortcut_path_length", 0.0)),
+        float(summary.get("smoothed_path_length", 0.0)),
+    ]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.bar(labels, values, color=["#777777", "#E69F00", "#0072B2"])
+    ax.set_ylabel("Length")
+    ax.set_title("Path Length Comparison")
+    ax.grid(True, axis="y", linewidth=0.4, alpha=0.4)
+    fig.tight_layout()
+    fig.savefig(output, dpi=160)
+    plt.close(fig)
+
+
+def plot_summary_dashboard(summary: dict, output: Path) -> None:
+    plt, _ = import_matplotlib()
+    metrics = [
+        ("duration", summary.get("trajectory_duration", 0.0)),
+        ("min clearance", summary.get("min_clearance", 0.0)),
+        ("avg clearance", summary.get("average_clearance", 0.0)),
+        ("max curvature", summary.get("max_curvature", 0.0)),
+        ("jerk integral", summary.get("jerk_integral", 0.0)),
+    ]
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.axis("off")
+    title = f"Planning Summary - {'success' if summary.get('success') else 'failed'}"
+    ax.text(0.02, 0.92, title, fontsize=16, weight="bold", transform=ax.transAxes)
+    ax.text(0.02, 0.82, str(summary.get("message", "")), fontsize=10, transform=ax.transAxes)
+
+    for i, (name, value) in enumerate(metrics):
+        x = 0.04 + (i % 3) * 0.31
+        y = 0.58 - (i // 3) * 0.28
+        if isinstance(value, float) and math.isinf(value):
+            text = "inf"
+        elif isinstance(value, (float, int)):
+            text = f"{float(value):.4g}"
+        else:
+            text = str(value)
+        ax.text(x, y + 0.08, name, fontsize=10, color="#555555", transform=ax.transAxes)
+        ax.text(x, y, text, fontsize=18, weight="bold", transform=ax.transAxes)
+
+    smoothing = summary.get("smoothing_message", "")
+    ax.text(0.02, 0.08, f"smoothing: {smoothing}", fontsize=10, transform=ax.transAxes)
     fig.tight_layout()
     fig.savefig(output, dpi=160)
     plt.close(fig)
@@ -247,13 +356,20 @@ def main() -> int:
 
     config = load_config(args.config)
     raw = read_points_csv(args.input / "raw_path.csv")
+    shortcut = read_points_csv(args.input / "shortcut_path.csv")
     smooth = read_points_csv(args.input / "smoothed_path.csv")
     trajectory = read_trajectory_csv(args.input / "trajectory.csv")
+    summary_path = args.input / "summary.json"
+    summary = load_config(summary_path) if summary_path.exists() else {}
 
     args.output.mkdir(parents=True, exist_ok=True)
-    plot_path_3d(config, args.config, raw, smooth, args.output / "path_3d.png")
-    plot_path_xy(config, args.config, raw, smooth, args.output / "path_xy.png")
-    plot_motion_profiles(config, trajectory, args.output / "motion_profiles.png")
+    plot_path_3d(config, args.config, raw, shortcut, smooth, args.output / "path_3d.png")
+    plot_path_xy(config, args.config, raw, shortcut, smooth, args.output / "path_xy.png")
+    if trajectory:
+        plot_motion_profiles(config, trajectory, args.output / "motion_profiles.png")
+    if summary:
+        plot_path_lengths(summary, args.output / "path_lengths.png")
+        plot_summary_dashboard(summary, args.output / "summary_dashboard.png")
 
     print(f"visualization written to: {args.output}")
     return 0

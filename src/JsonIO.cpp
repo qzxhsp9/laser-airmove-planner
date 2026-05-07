@@ -331,6 +331,7 @@ void writeGCodePrototype(const std::filesystem::path& path, const Path3& path_po
 void writePlanningOutputs(const std::filesystem::path& output_dir, const PlanningResult& result) {
     std::filesystem::create_directories(output_dir);
     writePathCsv(output_dir / "raw_path.csv", result.raw_path);
+    writePathCsv(output_dir / "shortcut_path.csv", result.shortcut_path);
     writePathCsv(output_dir / "smoothed_path.csv", result.smoothed_path);
     writeTrajectoryCsv(output_dir / "trajectory.csv", result.trajectory);
     writeSummaryJson(output_dir / "summary.json", result);

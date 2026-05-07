@@ -8,6 +8,12 @@
 .\build\Debug\laser_airmove_benchmark.exe --output benchmark_report.csv examples\benchmark\*.json
 ```
 
+生成 benchmark 汇总图：
+
+```powershell
+py -3.14 tools\visualize_benchmark.py --report benchmark_report.csv --output benchmark_visualization
+```
+
 场景说明：
 
 - `01_open_space_informed.json`：无障碍直线路径，验证基础耗时和轨迹输出。

@@ -119,6 +119,7 @@ endsolid triangle
     fake_result.smoothing_message = "skipped";
     writePlanningOutputs(output_dir, fake_result);
     assert(std::filesystem::exists(output_dir / "raw_path.csv"));
+    assert(std::filesystem::exists(output_dir / "shortcut_path.csv"));
     assert(std::filesystem::exists(output_dir / "smoothed_path.csv"));
     assert(std::filesystem::exists(output_dir / "trajectory.csv"));
     assert(std::filesystem::exists(output_dir / "summary.json"));

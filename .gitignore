@@ -16,6 +16,7 @@ vcpkg_installed/
 airmove_demo_output/
 airmove_*_output/
 visualization_output/
+benchmark_visualization/
 *.csv
 *.json
 *.png
