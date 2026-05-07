@@ -89,6 +89,10 @@ bool isPathValid(const Path3& path, const CollisionWorld& world, double resoluti
     return true;
 }
 
+bool isPositiveVec(const Vec3& value) {
+    return (value.array() > 0.0).all();
+}
+
 void updateTrajectoryMetrics(PlanningResult& result) {
     result.max_velocity_abs = Vec3::Zero();
     result.max_acceleration_abs = Vec3::Zero();
@@ -158,12 +162,30 @@ PlanningResult AirMovePlanner::plan(const PlanningRequest& request, const Collis
     const Vec3 start = request.start.position;
     const Vec3 goal = request.goal.position;
 
+    if ((config_.workspace_max.array() <= config_.workspace_min.array()).any()) {
+        result.message = "Workspace max must be greater than workspace min on all axes.";
+        return result;
+    }
+    if (config_.head_radius <= 0.0 || config_.safety_margin < 0.0) {
+        result.message = "Head radius must be positive and safety margin must be non-negative.";
+        return result;
+    }
+    if (config_.validity_resolution <= 0.0 || config_.smoothing_samples <= 0) {
+        result.message = "Validity resolution and smoothing samples must be positive.";
+        return result;
+    }
     if (!isInsideWorkspace(start) || !isInsideWorkspace(goal)) {
         result.message = "Start or goal is outside the configured workspace.";
         return result;
     }
     if (request.planning_time <= 0.0 || request.sample_dt <= 0.0) {
         result.message = "Planning time and sample_dt must be positive.";
+        return result;
+    }
+    if (!isPositiveVec(request.limits.max_velocity) ||
+        !isPositiveVec(request.limits.max_acceleration) ||
+        !isPositiveVec(request.limits.max_jerk)) {
+        result.message = "Motion limits must be positive on all axes.";
         return result;
     }
     if (config_.planner_range < 0.0) {

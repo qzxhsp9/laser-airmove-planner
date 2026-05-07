@@ -13,6 +13,10 @@ CollisionWorld::CollisionWorld(double head_radius, double safety_margin)
     : head_radius_(head_radius), safety_margin_(safety_margin) {}
 
 void CollisionWorld::addBoxObstacle(const Vec3& center, const Vec3& size_xyz) {
+    if ((size_xyz.array() <= 0.0).any()) {
+        throw std::invalid_argument("Box obstacle size must be positive on all axes.");
+    }
+
     auto box = std::make_shared<fcl::Boxd>(size_xyz.x(), size_xyz.y(), size_xyz.z());
     fcl::Transform3d tf = fcl::Transform3d::Identity();
     tf.translation() = center;

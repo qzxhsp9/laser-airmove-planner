@@ -6,6 +6,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 
 int main() {
     using namespace airmove;
@@ -119,6 +120,36 @@ endsolid triangle
     assert(std::filesystem::exists(output_dir / "trajectory.csv"));
     assert(std::filesystem::exists(output_dir / "summary.json"));
     assert(std::filesystem::exists(output_dir / "path_gcode.nc"));
+
+    const auto invalid_config_path = temp_dir / "invalid_config.json";
+    {
+        std::ofstream out(invalid_config_path);
+        out << R"({
+  "workspace": {"min": [0, 0, 0], "max": [20, 20, 20]},
+  "planning": {"goal_bias": 1.5},
+  "motion_limits": {
+    "max_velocity": [10, 10, 10],
+    "max_acceleration": [100, 100, 100],
+    "max_jerk": [1000, 1000, 1000],
+    "sample_dt": 0.01
+  },
+  "request": {
+    "start": {"xyz": [1, 1, 1]},
+    "goal": {"xyz": [2, 2, 2]}
+  },
+  "obstacles": [
+    {"type": "sphere", "center": [10, 0, 5], "radius": -1.5}
+  ]
+})";
+    }
+
+    bool rejected_invalid_config = false;
+    try {
+        (void)loadPlanningProblemJson(invalid_config_path);
+    } catch (const std::runtime_error&) {
+        rejected_invalid_config = true;
+    }
+    assert(rejected_invalid_config);
 
     return 0;
 }

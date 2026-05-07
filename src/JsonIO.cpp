@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <stdexcept>
+#include <string>
 
 namespace airmove {
 namespace {
@@ -60,6 +61,66 @@ Pose3 readPose(const json& object, const char* name) {
 
 json vecToJson(const Vec3& value) {
     return json::array({value.x(), value.y(), value.z()});
+}
+
+bool isPositiveVec(const Vec3& value) {
+    return (value.array() > 0.0).all();
+}
+
+void requirePositive(double value, const std::string& name) {
+    if (value <= 0.0) {
+        throw std::runtime_error(name + " must be positive.");
+    }
+}
+
+void requireNonNegative(double value, const std::string& name) {
+    if (value < 0.0) {
+        throw std::runtime_error(name + " must be non-negative.");
+    }
+}
+
+void validateProblem(const PlanningProblem& problem) {
+    const auto& config = problem.planner_config;
+    if ((config.workspace_max.array() <= config.workspace_min.array()).any()) {
+        throw std::runtime_error("workspace.max must be greater than workspace.min on all axes.");
+    }
+    requirePositive(config.head_radius, "tool.head_radius");
+    requireNonNegative(config.safety_margin, "planning.safety_margin");
+    requirePositive(config.planning_time_limit, "planning.planning_time");
+    requirePositive(config.validity_resolution, "planning.validity_resolution");
+    if (config.smoothing_samples <= 0) {
+        throw std::runtime_error("planning.smoothing_samples must be positive.");
+    }
+    requireNonNegative(config.planner_range, "planning.range");
+    if (config.planner_goal_bias < 0.0 || config.planner_goal_bias > 1.0) {
+        throw std::runtime_error("planning.goal_bias must be in [0, 1].");
+    }
+
+    const auto& limits = problem.request.limits;
+    if (!isPositiveVec(limits.max_velocity) ||
+        !isPositiveVec(limits.max_acceleration) ||
+        !isPositiveVec(limits.max_jerk)) {
+        throw std::runtime_error("motion_limits values must be positive on all axes.");
+    }
+    requirePositive(problem.request.sample_dt, "motion_limits.sample_dt");
+
+    for (const auto& box : problem.box_obstacles) {
+        if (!isPositiveVec(box.size)) {
+            throw std::runtime_error("box obstacle size must be positive on all axes.");
+        }
+    }
+    for (const auto& sphere : problem.sphere_obstacles) {
+        requirePositive(sphere.radius, "sphere obstacle radius");
+    }
+    for (const auto& cylinder : problem.cylinder_obstacles) {
+        requirePositive(cylinder.radius, "cylinder obstacle radius");
+        requirePositive(cylinder.height, "cylinder obstacle height");
+    }
+    for (const auto& mesh : problem.mesh_obstacles) {
+        if (mesh.file.empty()) {
+            throw std::runtime_error("mesh obstacle file must not be empty.");
+        }
+    }
 }
 
 } // namespace
@@ -159,6 +220,7 @@ PlanningProblem loadPlanningProblemJson(const std::filesystem::path& path) {
         }
     }
 
+    validateProblem(problem);
     return problem;
 }
 
