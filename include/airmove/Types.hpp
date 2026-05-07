@@ -60,9 +60,11 @@ struct PlanningResult {
     bool success{false};
     std::string planner_type;
     Path3 raw_path;
+    Path3 shortcut_path;
     Path3 smoothed_path;
     std::vector<TrajectorySample> trajectory;
     double raw_path_length{0.0};
+    double shortcut_path_length{0.0};
     double smoothed_path_length{0.0};
     double min_clearance{0.0};
     double average_clearance{0.0};
@@ -71,6 +73,10 @@ struct PlanningResult {
     Vec3 max_velocity_abs{0.0, 0.0, 0.0};
     Vec3 max_acceleration_abs{0.0, 0.0, 0.0};
     Vec3 max_jerk_abs{0.0, 0.0, 0.0};
+    bool smoothing_attempted{false};
+    bool smoothing_used{false};
+    bool smoothing_fallback{false};
+    std::string smoothing_message;
     std::string message;
 };
 
