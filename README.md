@@ -104,10 +104,16 @@ CollisionWorld world(config.head_radius, config.safety_margin);
 world.addBoxObstacle(Vec3(100, 100, 50), Vec3(60, 60, 100));
 
 AirMovePlanner planner(config);
-auto raw_path = planner.plan(Vec3(0, 0, 50), Vec3(220, 220, 50), world);
+PlanningRequest request;
+request.start.position = Vec3(0, 0, 50);
+request.goal.position = Vec3(220, 220, 50);
+request.planning_time = config.planning_time_limit;
+request.sample_dt = 0.004;
 
-auto smooth_path = BSplineSmoother().smooth(raw_path, 80);
-auto timed = RuckigExecutor(MotionLimits{}).generateStopToStop(smooth_path);
+PlanningResult result = planner.plan(request, world);
+if (result.success) {
+    // result.raw_path / result.smoothed_path / result.trajectory
+}
 ```
 
 ## 后续工程路线

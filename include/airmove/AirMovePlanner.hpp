@@ -9,11 +9,19 @@ class AirMovePlanner {
 public:
     explicit AirMovePlanner(PlannerConfig config);
 
-    // 单段空移避障：输入起点/终点 TCP 坐标，输出无碰撞折线路径。
+    PlanningResult plan(const PlanningRequest& request, const CollisionWorld& world) const;
     Path3 plan(const Vec3& start, const Vec3& goal, const CollisionWorld& world) const;
 
 private:
+    bool isInsideWorkspace(const Vec3& point) const;
+    Path3 planWithOMPL(const Vec3& start,
+                       const Vec3& goal,
+                       const CollisionWorld& world,
+                       double planning_time) const;
+
     PlannerConfig config_;
 };
+
+double pathLength(const Path3& path);
 
 } // namespace airmove

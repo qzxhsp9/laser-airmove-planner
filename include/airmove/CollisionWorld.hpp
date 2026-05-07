@@ -19,6 +19,8 @@ public:
     void addAsciiStlObstacle(const std::string& path);
 
     bool isStateValid(const Vec3& tcp_position) const;
+    bool isSegmentValid(const Vec3& start, const Vec3& goal, double resolution) const;
+    double distanceToNearestObstacle(const Vec3& tcp_position) const;
 
 private:
     using CollisionGeometryPtr = std::shared_ptr<fcl::CollisionGeometryd>;

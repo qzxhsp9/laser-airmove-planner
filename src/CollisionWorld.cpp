@@ -2,6 +2,9 @@
 #include "airmove/StlMeshLoader.hpp"
 
 #include <Eigen/Geometry>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace airmove {
@@ -65,6 +68,45 @@ bool CollisionWorld::isStateValid(const Vec3& tcp_position) const {
         }
     }
     return true;
+}
+
+bool CollisionWorld::isSegmentValid(const Vec3& start, const Vec3& goal, double resolution) const {
+    if (resolution <= 0.0) {
+        throw std::invalid_argument("Segment validity resolution must be positive.");
+    }
+
+    const double length = (goal - start).norm();
+    const int steps = std::max(1, static_cast<int>(std::ceil(length / resolution)));
+    for (int i = 0; i <= steps; ++i) {
+        const double t = static_cast<double>(i) / static_cast<double>(steps);
+        if (!isStateValid(start + t * (goal - start))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+double CollisionWorld::distanceToNearestObstacle(const Vec3& tcp_position) const {
+    if (obstacles_.empty()) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    auto head = std::make_shared<fcl::Sphered>(head_radius_);
+    fcl::Transform3d head_tf = fcl::Transform3d::Identity();
+    head_tf.translation() = tcp_position;
+    auto head_obj = std::make_shared<fcl::CollisionObjectd>(head, head_tf);
+
+    fcl::DistanceRequestd request;
+    fcl::DistanceResultd result;
+    double min_distance = std::numeric_limits<double>::infinity();
+
+    for (const auto& obstacle : obstacles_) {
+        result.clear();
+        const double distance = fcl::distance(head_obj.get(), obstacle.get(), request, result);
+        min_distance = std::min(min_distance, distance);
+    }
+
+    return min_distance - safety_margin_;
 }
 
 } // namespace airmove

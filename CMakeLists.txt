@@ -11,6 +11,7 @@ option(AIRMOVE_BUILD_TESTS "Build tests" OFF)
 find_package(ompl REQUIRED)
 find_package(fcl REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(ruckig REQUIRED)
 
 add_library(airmove_planner
@@ -31,7 +32,7 @@ target_include_directories(airmove_planner
 
 target_link_libraries(airmove_planner
     PUBLIC
-        ompl
+        ompl::ompl
         Eigen3::Eigen
         ruckig::ruckig
         fcl
@@ -49,4 +50,7 @@ endif()
 
 if(AIRMOVE_BUILD_TESTS)
     enable_testing()
+    add_executable(airmove_basic_tests tests/basic_tests.cpp)
+    target_link_libraries(airmove_basic_tests PRIVATE airmove::planner)
+    add_test(NAME airmove_basic_tests COMMAND airmove_basic_tests)
 endif()

@@ -1,9 +1,35 @@
+# Build trees and generated CMake files
 build/
 out/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+
+# vcpkg manifest-mode local installs
+vcpkg_installed/
+
+# Demo and benchmark outputs
+airmove_demo_output/
+*.csv
+*.json
+!vcpkg.json
+
+# IDE/editor files
+.vs/
 .vscode/
 .idea/
 *.user
 *.suo
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.vsidx
 *.swp
-compile_commands.json
+
+# OS files
 .DS_Store
+Thumbs.db
