@@ -19,7 +19,8 @@
 - 输出 `raw_path.csv`、`shortcut_path.csv`、`smoothed_path.csv`、`trajectory.csv`、`summary.json`、`path_gcode.nc`。
 - 表格展示 smoothed path。
 - 显示规划摘要指标。
-- 调用 `tools/visualize_path.py` 生成 `path_3d.png` 并在界面中预览。
+- 内置轻量 3D 交互视图，支持旋转、平移、缩放。
+- 调用 `tools/visualize_path.py` 导出高质量 PNG 可视化图片。
 - 保留运行日志，便于演示和排查。
 
 该工具不是完整 CAM 前端，暂不承担复杂场景编辑、STL 交互建模或实时 3D 渲染。
@@ -61,14 +62,16 @@ cmake --build build-qt --config Debug
 .\build-qt\Debug\airmove_qt_demo.exe
 ```
 
-如果运行时提示缺少 Qt DLL，可先在当前 PowerShell 中加入 Qt bin 目录：
+项目的 CMake 已经在构建 `airmove_qt_demo` 后自动调用 `windeployqt`，正常情况下会把 Qt DLL 和 `platforms/qwindowsd.dll` 部署到 exe 附近。
+
+如果运行时仍提示缺少 Qt DLL，可先在当前 PowerShell 中加入 Qt bin 目录：
 
 ```powershell
 $env:Path = "C:\Qt\6.11.0\msvc2022_64\bin;$env:Path"
 .\build-qt\Debug\airmove_qt_demo.exe
 ```
 
-也可以使用 Qt 自带部署工具：
+也可以手动使用 Qt 自带部署工具：
 
 ```powershell
 C:\Qt\6.11.0\msvc2022_64\bin\windeployqt.exe .\build-qt\Debug\airmove_qt_demo.exe
@@ -92,13 +95,22 @@ airmove_qt_output
 4. 按需微调参数。
 5. 点击 `运行规划`。
 6. 查看左侧摘要和 `smoothed path` 表格。
-7. 点击 `生成可视化`。
-8. 在 `路径预览` 标签页查看 `path_3d.png`。
+7. 在 `Interactive 3D View` 标签页拖拽查看路径。
+8. 点击 `Export PNG visualization` 可导出 `path_3d.png` 等高质量图片。
 
 可视化脚本依赖 matplotlib。如果未安装：
 
 ```powershell
 py -3.14 -m pip install -r tools\requirements-visualization.txt
+```
+
+3D 交互视图操作：
+
+```text
+Left drag   : rotate
+Right drag  : pan
+Mouse wheel : zoom
+Reset 3D view button: reset camera
 ```
 
 ## 5. 常见问题
@@ -162,6 +174,14 @@ Value: C:/Qt/6.11.0/msvc2022_64
 ```
 
 这不是编译错误，而是运行时 DLL 搜索路径问题。`Qt6Widgetsd.dll` 中的 `d` 表示 Debug 版本 Qt DLL。
+
+当前 CMake 会在构建后自动执行：
+
+```text
+windeployqt --debug --no-translations build-qt\Debug\airmove_qt_demo.exe
+```
+
+如果你是从 CMake GUI 或 Visual Studio 构建，先重新生成并完整构建 `airmove_qt_demo`，不要只运行旧 exe。
 
 开发阶段推荐在 PowerShell 中临时加入 Qt bin 目录后启动：
 

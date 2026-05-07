@@ -499,6 +499,22 @@ Qt6_DIR = C:/Qt/6.11.0/msvc2022_64
 
 说明运行时没有找到 Qt 的 DLL。开发阶段可临时设置：
 
+当前工程已经在 `AIRMOVE_BUILD_QT_DEMO=ON` 时自动调用 `windeployqt`，完整构建后通常不需要手动复制 Qt DLL。确认你执行过：
+
+```powershell
+cmake --build build-qt --config Debug --target airmove_qt_demo
+```
+
+构建日志中应出现：
+
+```text
+Deploying Qt runtime dependencies for airmove_qt_demo
+Updating Qt6Widgetsd.dll.
+Updating qwindowsd.dll.
+```
+
+如果仍然失败，再临时设置：
+
 ```powershell
 $env:Path = "C:\Qt\6.11.0\msvc2022_64\bin;$env:Path"
 .\build-qt\Debug\airmove_qt_demo.exe
