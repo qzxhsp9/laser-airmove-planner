@@ -441,3 +441,73 @@ doc/
 README.md
 .gitignore
 ```
+
+## 14. Qt Demo 补充说明
+
+Qt 演示界面是可选模块，默认不参与构建。启用时需要本机 Qt 6，例如：
+
+```text
+C:\Qt\6.11.0\msvc2022_64
+```
+
+### 14.1 CMake GUI 中 Qt 路径怎么填
+
+如果勾选了：
+
+```text
+AIRMOVE_BUILD_QT_DEMO
+```
+
+但 CMake GUI 报：
+
+```text
+Qt6_DIR-NOTFOUND
+Could not find a package configuration file provided by "Qt6"
+```
+
+推荐添加：
+
+```text
+Name: CMAKE_PREFIX_PATH
+Type: PATH
+Value: C:/Qt/6.11.0/msvc2022_64
+```
+
+或者直接设置：
+
+```text
+Name: Qt6_DIR
+Type: PATH
+Value: C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6
+```
+
+注意：
+
+```text
+Qt6_DIR = C:/Qt/6.11.0/msvc2022_64
+```
+
+是不对的。`Qt6_DIR` 必须指向包含 `Qt6Config.cmake` 的目录。
+
+### 14.2 运行时找不到 Qt6Widgetsd.dll
+
+如果启动 `airmove_qt_demo.exe` 时提示：
+
+```text
+由于找不到 Qt6Widgetsd.dll，无法继续执行代码。
+```
+
+说明运行时没有找到 Qt 的 DLL。开发阶段可临时设置：
+
+```powershell
+$env:Path = "C:\Qt\6.11.0\msvc2022_64\bin;$env:Path"
+.\build-qt\Debug\airmove_qt_demo.exe
+```
+
+也可以使用 Qt 部署工具：
+
+```powershell
+C:\Qt\6.11.0\msvc2022_64\bin\windeployqt.exe --debug .\build-qt\Debug\airmove_qt_demo.exe
+```
+
+Debug 版本会找 `Qt6Widgetsd.dll`，Release 版本会找 `Qt6Widgets.dll`。不要混用 Debug exe 和 Release DLL。

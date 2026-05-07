@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(AIRMOVE_BUILD_EXAMPLES "Build examples" ON)
 option(AIRMOVE_BUILD_TOOLS "Build command line tools" ON)
 option(AIRMOVE_BUILD_TESTS "Build tests" OFF)
+option(AIRMOVE_BUILD_QT_DEMO "Build Qt Widgets demo application" OFF)
 
 find_package(ompl REQUIRED)
 find_package(fcl REQUIRED)
@@ -57,6 +58,18 @@ if(AIRMOVE_BUILD_TOOLS)
 
     add_executable(laser_airmove_benchmark tools/laser_airmove_benchmark.cpp)
     target_link_libraries(laser_airmove_benchmark PRIVATE airmove::planner)
+endif()
+
+if(AIRMOVE_BUILD_QT_DEMO)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+
+    qt_add_executable(airmove_qt_demo
+        apps/qt_demo/main.cpp
+    )
+    target_link_libraries(airmove_qt_demo PRIVATE
+        airmove::planner
+        Qt6::Widgets
+    )
 endif()
 
 if(AIRMOVE_BUILD_TESTS)

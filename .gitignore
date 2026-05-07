@@ -1,5 +1,6 @@
 # Build trees and generated CMake files
 build/
+build-*/
 out/
 cmake-build-*/
 CMakeFiles/
