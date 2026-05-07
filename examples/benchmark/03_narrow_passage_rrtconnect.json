@@ -1,0 +1,46 @@
+{
+  "benchmark": {
+    "scene": "narrow_passage_rrtconnect",
+    "category": "narrow_passage",
+    "expected_success": true
+  },
+  "workspace": {
+    "min": [-80.0, -80.0, 0.0],
+    "max": [280.0, 220.0, 180.0]
+  },
+  "tool": {
+    "head_radius": 6.0
+  },
+  "planning": {
+    "planner": "rrtconnect",
+    "range": 25.0,
+    "goal_bias": 0.05,
+    "safety_margin": 2.0,
+    "planning_time": 1.5,
+    "validity_resolution": 1.5,
+    "smoothing_samples": 100,
+    "simplify_solution": true
+  },
+  "motion_limits": {
+    "max_velocity": [700.0, 700.0, 280.0],
+    "max_acceleration": [2500.0, 2500.0, 1000.0],
+    "max_jerk": [16000.0, 16000.0, 7000.0],
+    "sample_dt": 0.004
+  },
+  "request": {
+    "start": {"xyz": [0.0, 70.0, 55.0]},
+    "goal": {"xyz": [230.0, 70.0, 55.0]}
+  },
+  "obstacles": [
+    {
+      "type": "box",
+      "center": [115.0, 20.0, 55.0],
+      "size": [130.0, 55.0, 110.0]
+    },
+    {
+      "type": "box",
+      "center": [115.0, 120.0, 55.0],
+      "size": [130.0, 55.0, 110.0]
+    }
+  ]
+}

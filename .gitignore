@@ -22,6 +22,8 @@ visualization_output/
 *.nc
 !vcpkg.json
 !examples/*.json
+!examples/benchmark/
+!examples/benchmark/*.json
 
 # IDE/editor files
 .vs/

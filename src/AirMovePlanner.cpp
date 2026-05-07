@@ -89,6 +89,43 @@ bool isPathValid(const Path3& path, const CollisionWorld& world, double resoluti
     return true;
 }
 
+Path3 shortcutPath(const Path3& path, const CollisionWorld& world, double resolution) {
+    if (path.size() <= 2) {
+        return path;
+    }
+
+    Path3 result;
+    result.reserve(path.size());
+    std::size_t anchor = 0;
+    result.push_back(path.front());
+
+    while (anchor + 1 < path.size()) {
+        std::size_t next = anchor + 1;
+        for (std::size_t candidate = path.size() - 1; candidate > anchor; --candidate) {
+            if (world.isSegmentValid(path[anchor], path[candidate], resolution)) {
+                next = candidate;
+                break;
+            }
+        }
+        result.push_back(path[next]);
+        anchor = next;
+    }
+
+    return result;
+}
+
+bool pathsEqual(const Path3& a, const Path3& b) {
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        if ((a[i] - b[i]).norm() > 1e-9) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool isPositiveVec(const Vec3& value) {
     return (value.array() > 0.0).all();
 }
@@ -212,16 +249,32 @@ PlanningResult AirMovePlanner::plan(const PlanningRequest& request, const Collis
             result.raw_path = planWithOMPL(start, goal, world, request.planning_time);
         }
 
+        result.shortcut_path = shortcutPath(result.raw_path, world, config_.validity_resolution);
+
         BSplineSmoother smoother;
-        result.smoothed_path = smoother.smooth(result.raw_path, config_.smoothing_samples);
+        result.smoothing_attempted = result.shortcut_path.size() >= 3 &&
+                                     config_.smoothing_samples > static_cast<int>(result.shortcut_path.size());
+        result.smoothed_path = smoother.smooth(result.shortcut_path, config_.smoothing_samples);
         if (!isPathValid(result.smoothed_path, world, config_.validity_resolution)) {
-            result.smoothed_path = result.raw_path;
+            result.smoothed_path = result.shortcut_path;
+            result.smoothing_fallback = true;
+            result.smoothing_used = false;
+            result.smoothing_message = "Smoothing fallback: dense collision recheck failed.";
+        } else if (pathsEqual(result.smoothed_path, result.shortcut_path)) {
+            result.smoothing_used = false;
+            result.smoothing_message = result.smoothing_attempted
+                ? "Smoothing produced unchanged path."
+                : "Smoothing skipped: not enough points or sample count too low.";
+        } else {
+            result.smoothing_used = true;
+            result.smoothing_message = "Smoothing succeeded.";
         }
 
         MotionLimits limits = request.limits;
         limits.control_cycle = request.sample_dt;
         result.trajectory = RuckigExecutor(limits).generateStopToStop(result.smoothed_path);
         result.raw_path_length = pathLength(result.raw_path);
+        result.shortcut_path_length = pathLength(result.shortcut_path);
         result.smoothed_path_length = pathLength(result.smoothed_path);
         result.min_clearance = minClearance(result.smoothed_path, world);
         result.average_clearance = averageClearance(result.smoothed_path, world);
@@ -291,6 +344,9 @@ Path3 AirMovePlanner::planWithOMPL(const Vec3& start,
     const auto solved = ss.solve(planning_time);
     if (!solved) {
         throw std::runtime_error("OMPL failed to find a collision-free air-move path.");
+    }
+    if (static_cast<ob::PlannerStatus::StatusType>(solved) == ob::PlannerStatus::APPROXIMATE_SOLUTION) {
+        throw std::runtime_error("OMPL only found an approximate path and did not reach the goal.");
     }
 
     if (config_.simplify_solution) {

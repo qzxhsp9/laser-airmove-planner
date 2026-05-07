@@ -104,8 +104,10 @@ endsolid triangle
     fake_result.planner_type = "rrtconnect";
     fake_result.message = "ok";
     fake_result.raw_path = {Vec3(0, 0, 0), Vec3(1, 0, 0)};
+    fake_result.shortcut_path = fake_result.raw_path;
     fake_result.smoothed_path = fake_result.raw_path;
     fake_result.raw_path_length = 1.0;
+    fake_result.shortcut_path_length = 1.0;
     fake_result.smoothed_path_length = 1.0;
     fake_result.min_clearance = 2.0;
     fake_result.average_clearance = 3.0;
@@ -114,6 +116,7 @@ endsolid triangle
     fake_result.max_velocity_abs = Vec3(1, 2, 3);
     fake_result.max_acceleration_abs = Vec3(4, 5, 6);
     fake_result.max_jerk_abs = Vec3(7, 8, 9);
+    fake_result.smoothing_message = "skipped";
     writePlanningOutputs(output_dir, fake_result);
     assert(std::filesystem::exists(output_dir / "raw_path.csv"));
     assert(std::filesystem::exists(output_dir / "smoothed_path.csv"));

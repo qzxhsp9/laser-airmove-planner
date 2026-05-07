@@ -1,0 +1,46 @@
+{
+  "benchmark": {
+    "scene": "near_obstacle_informed",
+    "category": "clearance_stress",
+    "expected_success": true
+  },
+  "workspace": {
+    "min": [-80.0, -80.0, 0.0],
+    "max": [260.0, 180.0, 180.0]
+  },
+  "tool": {
+    "head_radius": 6.0
+  },
+  "planning": {
+    "planner": "informed_rrtstar",
+    "range": 0.0,
+    "goal_bias": 0.08,
+    "safety_margin": 2.0,
+    "planning_time": 1.5,
+    "validity_resolution": 1.5,
+    "smoothing_samples": 100,
+    "simplify_solution": true
+  },
+  "motion_limits": {
+    "max_velocity": [700.0, 700.0, 280.0],
+    "max_acceleration": [2500.0, 2500.0, 1000.0],
+    "max_jerk": [16000.0, 16000.0, 7000.0],
+    "sample_dt": 0.004
+  },
+  "request": {
+    "start": {"xyz": [-35.0, -35.0, 50.0]},
+    "goal": {"xyz": [220.0, 120.0, 50.0]}
+  },
+  "obstacles": [
+    {
+      "type": "box",
+      "center": [0.0, 0.0, 50.0],
+      "size": [35.0, 35.0, 90.0]
+    },
+    {
+      "type": "sphere",
+      "center": [105.0, 45.0, 50.0],
+      "radius": 28.0
+    }
+  ]
+}
