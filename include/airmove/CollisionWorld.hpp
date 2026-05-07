@@ -14,6 +14,8 @@ public:
     CollisionWorld(double head_radius, double safety_margin);
 
     void addBoxObstacle(const Vec3& center, const Vec3& size_xyz);
+    void addSphereObstacle(const Vec3& center, double radius);
+    void addCylinderObstacle(const Vec3& center, double radius, double height);
     void addMeshObstacle(const std::vector<Vec3>& vertices,
                          const std::vector<Eigen::Vector3i>& triangles);
     void addAsciiStlObstacle(const std::string& path);

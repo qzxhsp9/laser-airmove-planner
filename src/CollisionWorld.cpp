@@ -19,6 +19,28 @@ void CollisionWorld::addBoxObstacle(const Vec3& center, const Vec3& size_xyz) {
     obstacles_.push_back(std::make_shared<fcl::CollisionObjectd>(box, tf));
 }
 
+void CollisionWorld::addSphereObstacle(const Vec3& center, double radius) {
+    if (radius <= 0.0) {
+        throw std::invalid_argument("Sphere obstacle radius must be positive.");
+    }
+
+    auto sphere = std::make_shared<fcl::Sphered>(radius);
+    fcl::Transform3d tf = fcl::Transform3d::Identity();
+    tf.translation() = center;
+    obstacles_.push_back(std::make_shared<fcl::CollisionObjectd>(sphere, tf));
+}
+
+void CollisionWorld::addCylinderObstacle(const Vec3& center, double radius, double height) {
+    if (radius <= 0.0 || height <= 0.0) {
+        throw std::invalid_argument("Cylinder obstacle radius and height must be positive.");
+    }
+
+    auto cylinder = std::make_shared<fcl::Cylinderd>(radius, height);
+    fcl::Transform3d tf = fcl::Transform3d::Identity();
+    tf.translation() = center;
+    obstacles_.push_back(std::make_shared<fcl::CollisionObjectd>(cylinder, tf));
+}
+
 void CollisionWorld::addMeshObstacle(const std::vector<Vec3>& vertices,
                                      const std::vector<Eigen::Vector3i>& triangles) {
     if (vertices.empty() || triangles.empty()) {

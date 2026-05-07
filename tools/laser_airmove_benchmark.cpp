@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    report << "config,success,wall_time_ms,message,raw_waypoints,smoothed_waypoints,"
+    report << "config,planner,success,wall_time_ms,message,raw_waypoints,smoothed_waypoints,"
            << "trajectory_samples,raw_path_length,smoothed_path_length,trajectory_duration,"
            << "min_clearance,average_clearance,max_curvature,jerk_integral,"
            << "max_vx,max_vy,max_vz,max_ax,max_ay,max_az,max_jx,max_jy,max_jz\n";
@@ -68,10 +68,12 @@ int main(int argc, char** argv) {
     int success_count = 0;
     for (const auto& config : configs) {
         airmove::PlanningResult result;
+        std::string planner_type;
         const auto begin = std::chrono::steady_clock::now();
 
         try {
             const auto problem = airmove::loadPlanningProblemJson(config);
+            planner_type = problem.planner_config.planner_type;
             auto world = airmove::buildCollisionWorld(problem);
             airmove::AirMovePlanner planner(problem.planner_config);
             result = planner.plan(problem.request, world);
@@ -88,7 +90,9 @@ int main(int argc, char** argv) {
             ++success_count;
         }
 
+        const std::string report_planner = !result.planner_type.empty() ? result.planner_type : planner_type;
         report << csvEscape(config.string()) << ','
+               << csvEscape(report_planner) << ','
                << (result.success ? 1 : 0) << ','
                << wall_time_ms << ','
                << csvEscape(result.message) << ','

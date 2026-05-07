@@ -12,8 +12,12 @@ int main() {
 
     CollisionWorld world(1.0, 0.5);
     world.addBoxObstacle(Vec3(0.0, 0.0, 0.0), Vec3(10.0, 10.0, 10.0));
+    world.addSphereObstacle(Vec3(40.0, 0.0, 0.0), 5.0);
+    world.addCylinderObstacle(Vec3(60.0, 0.0, 0.0), 4.0, 10.0);
 
     assert(!world.isStateValid(Vec3(0.0, 0.0, 0.0)));
+    assert(!world.isStateValid(Vec3(40.0, 0.0, 0.0)));
+    assert(!world.isStateValid(Vec3(60.0, 0.0, 0.0)));
     assert(world.isStateValid(Vec3(20.0, 0.0, 0.0)));
     assert(!world.isSegmentValid(Vec3(-20.0, 0.0, 0.0), Vec3(20.0, 0.0, 0.0), 1.0));
     assert(world.isSegmentValid(Vec3(-20.0, 20.0, 0.0), Vec3(20.0, 20.0, 0.0), 1.0));
@@ -55,7 +59,14 @@ endsolid triangle
         out << R"({
   "workspace": {"min": [-10, -10, 0], "max": [20, 20, 20]},
   "tool": {"head_radius": 1.0},
-  "planning": {"safety_margin": 0.5, "planning_time": 0.1, "validity_resolution": 1.0},
+  "planning": {
+    "planner": "rrtconnect",
+    "range": 5.0,
+    "goal_bias": 0.2,
+    "safety_margin": 0.5,
+    "planning_time": 0.1,
+    "validity_resolution": 1.0
+  },
   "motion_limits": {
     "max_velocity": [10, 10, 10],
     "max_acceleration": [100, 100, 100],
@@ -68,6 +79,8 @@ endsolid triangle
   },
   "obstacles": [
     {"type": "box", "center": [0, 0, 5], "size": [2, 2, 2]},
+    {"type": "sphere", "center": [10, 0, 5], "radius": 1.5},
+    {"type": "cylinder", "center": [15, 0, 5], "radius": 1.0, "height": 4.0},
     {"type": "ascii_stl", "file": "triangle.stl"}
   ]
 })";
@@ -75,13 +88,19 @@ endsolid triangle
 
     const auto problem = loadPlanningProblemJson(config_path);
     assert(problem.box_obstacles.size() == 1);
+    assert(problem.sphere_obstacles.size() == 1);
+    assert(problem.cylinder_obstacles.size() == 1);
     assert(problem.mesh_obstacles.size() == 1);
+    assert(problem.planner_config.planner_type == "rrtconnect");
+    assert(problem.planner_config.planner_range == 5.0);
+    assert(problem.planner_config.planner_goal_bias == 0.2);
     assert(problem.planner_config.head_radius == 1.0);
     assert(problem.request.sample_dt == 0.01);
 
     const auto output_dir = temp_dir / "output";
     PlanningResult fake_result;
     fake_result.success = true;
+    fake_result.planner_type = "rrtconnect";
     fake_result.message = "ok";
     fake_result.raw_path = {Vec3(0, 0, 0), Vec3(1, 0, 0)};
     fake_result.smoothed_path = fake_result.raw_path;
@@ -99,6 +118,7 @@ endsolid triangle
     assert(std::filesystem::exists(output_dir / "smoothed_path.csv"));
     assert(std::filesystem::exists(output_dir / "trajectory.csv"));
     assert(std::filesystem::exists(output_dir / "summary.json"));
+    assert(std::filesystem::exists(output_dir / "path_gcode.nc"));
 
     return 0;
 }

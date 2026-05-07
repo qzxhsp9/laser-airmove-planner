@@ -44,6 +44,10 @@ bool readBool(const json& object, const char* key, bool fallback) {
     return object.contains(key) ? object.at(key).get<bool>() : fallback;
 }
 
+std::string readString(const json& object, const char* key, const std::string& fallback) {
+    return object.contains(key) ? object.at(key).get<std::string>() : fallback;
+}
+
 Pose3 readPose(const json& object, const char* name) {
     if (!object.contains("xyz")) {
         throw std::runtime_error(std::string(name) + " requires xyz.");
@@ -86,6 +90,12 @@ PlanningProblem loadPlanningProblemJson(const std::filesystem::path& path) {
 
     if (root.contains("planning")) {
         const auto& planning = root.at("planning");
+        problem.planner_config.planner_type =
+            readString(planning, "planner", problem.planner_config.planner_type);
+        problem.planner_config.planner_range =
+            readDouble(planning, "range", problem.planner_config.planner_range);
+        problem.planner_config.planner_goal_bias =
+            readDouble(planning, "goal_bias", problem.planner_config.planner_goal_bias);
         problem.planner_config.safety_margin =
             readDouble(planning, "safety_margin", problem.planner_config.safety_margin);
         problem.planner_config.planning_time_limit =
@@ -128,6 +138,17 @@ PlanningProblem loadPlanningProblemJson(const std::filesystem::path& path) {
                 box.center = readVec3(obstacle.at("center"), "obstacle.center");
                 box.size = readVec3(obstacle.at("size"), "obstacle.size");
                 problem.box_obstacles.push_back(box);
+            } else if (type == "sphere") {
+                SphereObstacle sphere;
+                sphere.center = readVec3(obstacle.at("center"), "obstacle.center");
+                sphere.radius = obstacle.at("radius").get<double>();
+                problem.sphere_obstacles.push_back(sphere);
+            } else if (type == "cylinder") {
+                CylinderObstacle cylinder;
+                cylinder.center = readVec3(obstacle.at("center"), "obstacle.center");
+                cylinder.radius = obstacle.at("radius").get<double>();
+                cylinder.height = obstacle.at("height").get<double>();
+                problem.cylinder_obstacles.push_back(cylinder);
             } else if (type == "ascii_stl") {
                 MeshObstacle mesh;
                 mesh.file = resolvePath(base_dir, obstacle.at("file").get<std::string>());
@@ -145,6 +166,12 @@ CollisionWorld buildCollisionWorld(const PlanningProblem& problem) {
     CollisionWorld world(problem.planner_config.head_radius, problem.planner_config.safety_margin);
     for (const auto& box : problem.box_obstacles) {
         world.addBoxObstacle(box.center, box.size);
+    }
+    for (const auto& sphere : problem.sphere_obstacles) {
+        world.addSphereObstacle(sphere.center, sphere.radius);
+    }
+    for (const auto& cylinder : problem.cylinder_obstacles) {
+        world.addCylinderObstacle(cylinder.center, cylinder.radius, cylinder.height);
     }
     for (const auto& mesh : problem.mesh_obstacles) {
         world.addAsciiStlObstacle(mesh.file);
@@ -186,6 +213,7 @@ void writeSummaryJson(const std::filesystem::path& path, const PlanningResult& r
 
     json summary{
         {"success", result.success},
+        {"planner", result.planner_type},
         {"message", result.message},
         {"raw_waypoints", result.raw_path.size()},
         {"smoothed_waypoints", result.smoothed_path.size()},
@@ -214,12 +242,31 @@ void writeSummaryJson(const std::filesystem::path& path, const PlanningResult& r
     out << std::setw(2) << summary << '\n';
 }
 
+void writeGCodePrototype(const std::filesystem::path& path, const Path3& path_points) {
+    std::ofstream out(path);
+    if (!out) {
+        throw std::runtime_error("Cannot write G-code: " + path.string());
+    }
+
+    out << "(laser-airmove-planner prototype air-move path)\n";
+    out << "G21\n";
+    out << "G90\n";
+    out << std::fixed << std::setprecision(6);
+    for (const auto& point : path_points) {
+        out << "G0 X" << point.x()
+            << " Y" << point.y()
+            << " Z" << point.z() << '\n';
+    }
+    out << "M30\n";
+}
+
 void writePlanningOutputs(const std::filesystem::path& output_dir, const PlanningResult& result) {
     std::filesystem::create_directories(output_dir);
     writePathCsv(output_dir / "raw_path.csv", result.raw_path);
     writePathCsv(output_dir / "smoothed_path.csv", result.smoothed_path);
     writeTrajectoryCsv(output_dir / "trajectory.csv", result.trajectory);
     writeSummaryJson(output_dir / "summary.json", result);
+    writeGCodePrototype(output_dir / "path_gcode.nc", result.smoothed_path);
 }
 
 } // namespace airmove

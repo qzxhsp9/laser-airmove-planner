@@ -264,11 +264,34 @@ raw_path.csv
 smoothed_path.csv
 trajectory.csv
 summary.json
+path_gcode.nc
 ```
 
-## 11. 常见问题
+## 11. 运行可视化工具
 
-### 11.1 CMake 找不到 OMPL
+先确认已经生成规划输出目录，例如 `airmove_cli_output`。然后执行：
+
+```powershell
+python tools\visualize_path.py --config examples\simple_box_config.json --input airmove_cli_output --output visualization_output
+```
+
+输出图片：
+
+```text
+visualization_output\path_3d.png
+visualization_output\path_xy.png
+visualization_output\motion_profiles.png
+```
+
+该工具依赖 `matplotlib`：
+
+```powershell
+python -m pip install -r tools\requirements-visualization.txt
+```
+
+## 12. 常见问题
+
+### 12.1 CMake 找不到 OMPL
 
 典型错误：
 
@@ -300,7 +323,7 @@ Test-Path "D:\software\vcpkg\installed\x64-windows\share\ompl\omplConfig.cmake"
 build\vcpkg_installed\x64-windows\share\ompl\omplConfig.cmake
 ```
 
-### 11.2 找不到 kernel32.lib
+### 12.2 找不到 kernel32.lib
 
 典型错误：
 
@@ -322,7 +345,7 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="$t
 
 如果坚持使用 Ninja，需要先进入 Visual Studio 开发者环境。
 
-### 11.3 Ruckig 报 nlohmann_json target not found
+### 12.3 Ruckig 报 nlohmann_json target not found
 
 典型错误：
 
@@ -341,7 +364,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(ruckig REQUIRED)
 ```
 
-### 11.4 链接时找不到 ompl.lib
+### 12.4 链接时找不到 ompl.lib
 
 典型错误：
 
@@ -359,7 +382,7 @@ LINK : fatal error LNK1104: cannot open file 'ompl.lib'
 target_link_libraries(airmove_planner PUBLIC ompl::ompl)
 ```
 
-### 11.5 无法删除 build 目录
+### 12.5 无法删除 build 目录
 
 典型错误：
 
@@ -376,7 +399,7 @@ Visual Studio 正在占用 `build\.vs` 下的索引数据库。
 - 关闭 Visual Studio 后重试
 - 或换一个新的构建目录
 
-### 11.6 vcpkg 下载 7zr.exe 或 PowerShell Core 失败
+### 12.6 vcpkg 下载 7zr.exe 或 PowerShell Core 失败
 
 典型现象：
 
@@ -393,7 +416,7 @@ curl operation failed
 3. 显式设置 `HTTP_PROXY` 和 `HTTPS_PROXY`
 4. 必要时设置 `VCPKG_FORCE_SYSTEM_BINARIES=1`
 
-## 12. Git 注意事项
+## 13. Git 注意事项
 
 以下是本地生成产物，不应提交：
 

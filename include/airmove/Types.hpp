@@ -19,6 +19,9 @@ struct PlannerConfig {
     Vec3 workspace_min{-500.0, -500.0, 0.0};
     Vec3 workspace_max{500.0, 500.0, 500.0};
 
+    std::string planner_type{"informed_rrtstar"};
+    double planner_range{0.0};
+    double planner_goal_bias{0.05};
     double head_radius{8.0};
     double safety_margin{2.0};
     double planning_time_limit{2.0};
@@ -55,6 +58,7 @@ struct TrajectorySample {
 
 struct PlanningResult {
     bool success{false};
+    std::string planner_type;
     Path3 raw_path;
     Path3 smoothed_path;
     std::vector<TrajectorySample> trajectory;
@@ -75,6 +79,17 @@ struct BoxObstacle {
     Vec3 size{1.0, 1.0, 1.0};
 };
 
+struct SphereObstacle {
+    Vec3 center{0.0, 0.0, 0.0};
+    double radius{1.0};
+};
+
+struct CylinderObstacle {
+    Vec3 center{0.0, 0.0, 0.0};
+    double radius{1.0};
+    double height{1.0};
+};
+
 struct MeshObstacle {
     std::string file;
 };
@@ -83,6 +98,8 @@ struct PlanningProblem {
     PlannerConfig planner_config;
     PlanningRequest request;
     std::vector<BoxObstacle> box_obstacles;
+    std::vector<SphereObstacle> sphere_obstacles;
+    std::vector<CylinderObstacle> cylinder_obstacles;
     std::vector<MeshObstacle> mesh_obstacles;
 };
 

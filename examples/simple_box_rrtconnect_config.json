@@ -7,7 +7,7 @@
     "head_radius": 8.0
   },
   "planning": {
-    "planner": "informed_rrtstar",
+    "planner": "rrtconnect",
     "range": 0.0,
     "goal_bias": 0.05,
     "safety_margin": 2.0,

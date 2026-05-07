@@ -15,8 +15,11 @@ vcpkg_installed/
 # Demo and benchmark outputs
 airmove_demo_output/
 airmove_*_output/
+visualization_output/
 *.csv
 *.json
+*.png
+*.nc
 !vcpkg.json
 !examples/*.json
 
@@ -31,6 +34,10 @@ airmove_*_output/
 *.VC.opendb
 *.vsidx
 *.swp
+
+# Python cache
+__pycache__/
+*.py[cod]
 
 # OS files
 .DS_Store

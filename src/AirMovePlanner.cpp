@@ -8,11 +8,15 @@
 #include <ompl/geometric/PathGeometric.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/geometric/planners/rrt/InformedRRTstar.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/rrt/RRTstar.h>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace ob = ompl::base;
@@ -107,12 +111,50 @@ void updateTrajectoryMetrics(PlanningResult& result) {
     }
 }
 
+ob::PlannerPtr createPlanner(const PlannerConfig& config, const ob::SpaceInformationPtr& si) {
+    const auto applyRange = [&config](auto& planner) {
+        if (config.planner_range > 0.0) {
+            planner->setRange(config.planner_range);
+        }
+    };
+
+    const auto applyGoalBias = [&config](auto& planner) {
+        if (config.planner_goal_bias >= 0.0 && config.planner_goal_bias <= 1.0) {
+            planner->setGoalBias(config.planner_goal_bias);
+        }
+    };
+
+    const auto& planner_type = config.planner_type;
+    if (planner_type == "rrtconnect") {
+        auto planner = std::make_shared<og::RRTConnect>(si);
+        applyRange(planner);
+        return planner;
+    }
+    if (planner_type == "rrtstar") {
+        auto planner = std::make_shared<og::RRTstar>(si);
+        applyRange(planner);
+        applyGoalBias(planner);
+        return planner;
+    }
+    if (planner_type == "informed_rrtstar") {
+        auto planner = std::make_shared<og::InformedRRTstar>(si);
+        applyRange(planner);
+        applyGoalBias(planner);
+        return planner;
+    }
+
+    throw std::runtime_error(
+        "Unsupported planner type: " + planner_type +
+        ". Supported values: rrtconnect, rrtstar, informed_rrtstar.");
+}
+
 } // namespace
 
 AirMovePlanner::AirMovePlanner(PlannerConfig config) : config_(std::move(config)) {}
 
 PlanningResult AirMovePlanner::plan(const PlanningRequest& request, const CollisionWorld& world) const {
     PlanningResult result;
+    result.planner_type = config_.planner_type;
     const Vec3 start = request.start.position;
     const Vec3 goal = request.goal.position;
 
@@ -122,6 +164,14 @@ PlanningResult AirMovePlanner::plan(const PlanningRequest& request, const Collis
     }
     if (request.planning_time <= 0.0 || request.sample_dt <= 0.0) {
         result.message = "Planning time and sample_dt must be positive.";
+        return result;
+    }
+    if (config_.planner_range < 0.0) {
+        result.message = "Planner range must be zero for auto range or a positive value.";
+        return result;
+    }
+    if (config_.planner_goal_bias < 0.0 || config_.planner_goal_bias > 1.0) {
+        result.message = "Planner goal_bias must be in [0, 1].";
         return result;
     }
     if (!world.isStateValid(start)) {
@@ -214,8 +264,7 @@ Path3 AirMovePlanner::planWithOMPL(const Vec3& start,
     g[2] = goal.z();
     ss.setStartAndGoalStates(s, g);
 
-    auto planner = std::make_shared<og::InformedRRTstar>(ss.getSpaceInformation());
-    ss.setPlanner(planner);
+    ss.setPlanner(createPlanner(config_, ss.getSpaceInformation()));
 
     const auto solved = ss.solve(planning_time);
     if (!solved) {
