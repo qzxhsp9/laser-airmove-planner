@@ -32,6 +32,10 @@
       "type": "box",
       "center": [100.0, 100.0, 50.0],
       "size": [60.0, 60.0, 100.0]
+    },
+    {
+      "type": "ascii_stl",
+      "file": "simple_triangle_obstacle.stl"
     }
   ]
 }

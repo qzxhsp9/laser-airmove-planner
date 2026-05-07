@@ -34,6 +34,21 @@ int main() {
     const auto temp_dir = std::filesystem::temp_directory_path() / "airmove_basic_tests";
     std::filesystem::create_directories(temp_dir);
     const auto config_path = temp_dir / "simple_box_config.json";
+    const auto stl_path = temp_dir / "triangle.stl";
+
+    {
+        std::ofstream out(stl_path);
+        out << R"(solid triangle
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 0 1 0
+    endloop
+  endfacet
+endsolid triangle
+)";
+    }
 
     {
         std::ofstream out(config_path);
@@ -52,13 +67,15 @@ int main() {
     "goal": {"xyz": [5, 5, 5]}
   },
   "obstacles": [
-    {"type": "box", "center": [0, 0, 5], "size": [2, 2, 2]}
+    {"type": "box", "center": [0, 0, 5], "size": [2, 2, 2]},
+    {"type": "ascii_stl", "file": "triangle.stl"}
   ]
 })";
     }
 
     const auto problem = loadPlanningProblemJson(config_path);
     assert(problem.box_obstacles.size() == 1);
+    assert(problem.mesh_obstacles.size() == 1);
     assert(problem.planner_config.head_radius == 1.0);
     assert(problem.request.sample_dt == 0.01);
 
@@ -71,6 +88,9 @@ int main() {
     fake_result.raw_path_length = 1.0;
     fake_result.smoothed_path_length = 1.0;
     fake_result.min_clearance = 2.0;
+    fake_result.max_velocity_abs = Vec3(1, 2, 3);
+    fake_result.max_acceleration_abs = Vec3(4, 5, 6);
+    fake_result.max_jerk_abs = Vec3(7, 8, 9);
     writePlanningOutputs(output_dir, fake_result);
     assert(std::filesystem::exists(output_dir / "raw_path.csv"));
     assert(std::filesystem::exists(output_dir / "smoothed_path.csv"));

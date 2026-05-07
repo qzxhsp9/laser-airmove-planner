@@ -50,6 +50,19 @@ bool isPathValid(const Path3& path, const CollisionWorld& world, double resoluti
     return true;
 }
 
+void updateTrajectoryMetrics(PlanningResult& result) {
+    result.max_velocity_abs = Vec3::Zero();
+    result.max_acceleration_abs = Vec3::Zero();
+    result.max_jerk_abs = Vec3::Zero();
+
+    for (const auto& sample : result.trajectory) {
+        result.max_velocity_abs = result.max_velocity_abs.cwiseMax(sample.velocity.cwiseAbs());
+        result.max_acceleration_abs =
+            result.max_acceleration_abs.cwiseMax(sample.acceleration.cwiseAbs());
+        result.max_jerk_abs = result.max_jerk_abs.cwiseMax(sample.jerk.cwiseAbs());
+    }
+}
+
 } // namespace
 
 AirMovePlanner::AirMovePlanner(PlannerConfig config) : config_(std::move(config)) {}
@@ -95,6 +108,7 @@ PlanningResult AirMovePlanner::plan(const PlanningRequest& request, const Collis
         result.raw_path_length = pathLength(result.raw_path);
         result.smoothed_path_length = pathLength(result.smoothed_path);
         result.min_clearance = minClearance(result.smoothed_path, world);
+        updateTrajectoryMetrics(result);
         result.success = true;
         result.message = "Planning succeeded.";
     } catch (const std::exception& e) {

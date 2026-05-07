@@ -61,6 +61,12 @@ struct PlanningResult {
     double raw_path_length{0.0};
     double smoothed_path_length{0.0};
     double min_clearance{0.0};
+    double average_clearance{0.0};
+    double max_curvature{0.0};
+    double jerk_integral{0.0};
+    Vec3 max_velocity_abs{0.0, 0.0, 0.0};
+    Vec3 max_acceleration_abs{0.0, 0.0, 0.0};
+    Vec3 max_jerk_abs{0.0, 0.0, 0.0};
     std::string message;
 };
 
@@ -69,10 +75,15 @@ struct BoxObstacle {
     Vec3 size{1.0, 1.0, 1.0};
 };
 
+struct MeshObstacle {
+    std::string file;
+};
+
 struct PlanningProblem {
     PlannerConfig planner_config;
     PlanningRequest request;
     std::vector<BoxObstacle> box_obstacles;
+    std::vector<MeshObstacle> mesh_obstacles;
 };
 
 } // namespace airmove

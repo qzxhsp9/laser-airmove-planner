@@ -139,6 +139,14 @@ trajectory.csv
 summary.json
 ```
 
+当前 JSON 配置支持：
+
+- `box` 障碍物
+- `ascii_stl` 障碍物
+- workspace / tool / planning / motion_limits / request 参数
+
+`summary.json` 会输出路径长度、轨迹时长、最小 clearance，以及速度、加速度、jerk 的各轴最大绝对值。
+
 ## 后续工程路线
 
 ### 1. 几何避障增强

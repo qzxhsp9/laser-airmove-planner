@@ -11,6 +11,14 @@ namespace {
 
 using json = nlohmann::json;
 
+std::string resolvePath(const std::filesystem::path& base_dir, const std::string& file) {
+    const std::filesystem::path path(file);
+    if (path.is_absolute()) {
+        return path.string();
+    }
+    return (base_dir / path).lexically_normal().string();
+}
+
 Vec3 readVec3(const json& value, const char* name) {
     if (!value.is_array() || value.size() != 3) {
         throw std::runtime_error(std::string(name) + " must be an array with 3 numbers.");
@@ -61,6 +69,7 @@ PlanningProblem loadPlanningProblemJson(const std::filesystem::path& path) {
     json root;
     in >> root;
 
+    const auto base_dir = path.parent_path();
     PlanningProblem problem;
 
     if (root.contains("workspace")) {
@@ -114,14 +123,18 @@ PlanningProblem loadPlanningProblemJson(const std::filesystem::path& path) {
     if (root.contains("obstacles")) {
         for (const auto& obstacle : root.at("obstacles")) {
             const std::string type = obstacle.value("type", "");
-            if (type != "box") {
-                throw std::runtime_error("Only box obstacles are supported by the JSON CLI for now.");
+            if (type == "box") {
+                BoxObstacle box;
+                box.center = readVec3(obstacle.at("center"), "obstacle.center");
+                box.size = readVec3(obstacle.at("size"), "obstacle.size");
+                problem.box_obstacles.push_back(box);
+            } else if (type == "ascii_stl") {
+                MeshObstacle mesh;
+                mesh.file = resolvePath(base_dir, obstacle.at("file").get<std::string>());
+                problem.mesh_obstacles.push_back(mesh);
+            } else {
+                throw std::runtime_error("Unsupported obstacle type: " + type);
             }
-
-            BoxObstacle box;
-            box.center = readVec3(obstacle.at("center"), "obstacle.center");
-            box.size = readVec3(obstacle.at("size"), "obstacle.size");
-            problem.box_obstacles.push_back(box);
         }
     }
 
@@ -132,6 +145,9 @@ CollisionWorld buildCollisionWorld(const PlanningProblem& problem) {
     CollisionWorld world(problem.planner_config.head_radius, problem.planner_config.safety_margin);
     for (const auto& box : problem.box_obstacles) {
         world.addBoxObstacle(box.center, box.size);
+    }
+    for (const auto& mesh : problem.mesh_obstacles) {
+        world.addAsciiStlObstacle(mesh.file);
     }
     return world;
 }
@@ -178,6 +194,9 @@ void writeSummaryJson(const std::filesystem::path& path, const PlanningResult& r
         {"smoothed_path_length", result.smoothed_path_length},
         {"trajectory_duration", duration},
         {"min_clearance", result.min_clearance},
+        {"max_velocity_abs", vecToJson(result.max_velocity_abs)},
+        {"max_acceleration_abs", vecToJson(result.max_acceleration_abs)},
+        {"max_jerk_abs", vecToJson(result.max_jerk_abs)},
     };
 
     if (!result.raw_path.empty()) {
