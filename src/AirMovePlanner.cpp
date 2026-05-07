@@ -33,6 +33,41 @@ double minClearance(const Path3& path, const CollisionWorld& world) {
     return result;
 }
 
+double averageClearance(const Path3& path, const CollisionWorld& world) {
+    if (path.empty()) {
+        return 0.0;
+    }
+
+    double sum = 0.0;
+    for (const auto& point : path) {
+        sum += world.distanceToNearestObstacle(point);
+    }
+    return sum / static_cast<double>(path.size());
+}
+
+double maxCurvature(const Path3& path) {
+    if (path.size() < 3) {
+        return 0.0;
+    }
+
+    double result = 0.0;
+    for (std::size_t i = 1; i + 1 < path.size(); ++i) {
+        const Vec3 a = path[i] - path[i - 1];
+        const Vec3 b = path[i + 1] - path[i];
+        const double len_a = a.norm();
+        const double len_b = b.norm();
+        if (len_a < 1e-9 || len_b < 1e-9) {
+            continue;
+        }
+
+        const double cos_angle = std::clamp(a.dot(b) / (len_a * len_b), -1.0, 1.0);
+        const double angle = std::acos(cos_angle);
+        const double local_curvature = angle / (0.5 * (len_a + len_b));
+        result = std::max(result, local_curvature);
+    }
+    return result;
+}
+
 bool isPathValid(const Path3& path, const CollisionWorld& world, double resolution) {
     if (path.empty()) {
         return false;
@@ -54,12 +89,21 @@ void updateTrajectoryMetrics(PlanningResult& result) {
     result.max_velocity_abs = Vec3::Zero();
     result.max_acceleration_abs = Vec3::Zero();
     result.max_jerk_abs = Vec3::Zero();
+    result.jerk_integral = 0.0;
 
-    for (const auto& sample : result.trajectory) {
+    for (std::size_t i = 0; i < result.trajectory.size(); ++i) {
+        const auto& sample = result.trajectory[i];
         result.max_velocity_abs = result.max_velocity_abs.cwiseMax(sample.velocity.cwiseAbs());
         result.max_acceleration_abs =
             result.max_acceleration_abs.cwiseMax(sample.acceleration.cwiseAbs());
         result.max_jerk_abs = result.max_jerk_abs.cwiseMax(sample.jerk.cwiseAbs());
+
+        if (i > 0) {
+            const double dt = sample.time - result.trajectory[i - 1].time;
+            if (dt > 0.0) {
+                result.jerk_integral += sample.jerk.squaredNorm() * dt;
+            }
+        }
     }
 }
 
@@ -108,6 +152,8 @@ PlanningResult AirMovePlanner::plan(const PlanningRequest& request, const Collis
         result.raw_path_length = pathLength(result.raw_path);
         result.smoothed_path_length = pathLength(result.smoothed_path);
         result.min_clearance = minClearance(result.smoothed_path, world);
+        result.average_clearance = averageClearance(result.smoothed_path, world);
+        result.max_curvature = maxCurvature(result.smoothed_path);
         updateTrajectoryMetrics(result);
         result.success = true;
         result.message = "Planning succeeded.";

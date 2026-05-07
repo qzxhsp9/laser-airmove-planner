@@ -54,6 +54,9 @@ endif()
 if(AIRMOVE_BUILD_TOOLS)
     add_executable(laser_airmove_plan tools/laser_airmove_plan.cpp)
     target_link_libraries(laser_airmove_plan PRIVATE airmove::planner)
+
+    add_executable(laser_airmove_benchmark tools/laser_airmove_benchmark.cpp)
+    target_link_libraries(laser_airmove_benchmark PRIVATE airmove::planner)
 endif()
 
 if(AIRMOVE_BUILD_TESTS)

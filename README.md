@@ -147,6 +147,25 @@ summary.json
 
 `summary.json` 会输出路径长度、轨迹时长、最小 clearance，以及速度、加速度、jerk 的各轴最大绝对值。
 
+## Benchmark
+
+可以批量运行一个或多个配置文件并输出 CSV 指标报告：
+
+```powershell
+.\build\Debug\laser_airmove_benchmark.exe --output benchmark_report.csv examples\simple_box_config.json
+```
+
+报告包含：
+
+- success / wall_time_ms
+- raw/smoothed waypoint count
+- path length
+- trajectory duration
+- min/average clearance
+- max curvature
+- jerk integral
+- max velocity / acceleration / jerk per axis
+
 ## 后续工程路线
 
 ### 1. 几何避障增强

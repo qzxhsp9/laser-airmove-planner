@@ -88,6 +88,9 @@ endsolid triangle
     fake_result.raw_path_length = 1.0;
     fake_result.smoothed_path_length = 1.0;
     fake_result.min_clearance = 2.0;
+    fake_result.average_clearance = 3.0;
+    fake_result.max_curvature = 0.25;
+    fake_result.jerk_integral = 10.0;
     fake_result.max_velocity_abs = Vec3(1, 2, 3);
     fake_result.max_acceleration_abs = Vec3(4, 5, 6);
     fake_result.max_jerk_abs = Vec3(7, 8, 9);
