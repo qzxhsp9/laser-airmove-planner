@@ -1,55 +1,103 @@
 {
-  "workspace": {
-    "min": [-100.0, -100.0, 0.0],
-    "max": [300.0, 300.0, 200.0]
-  },
-  "tool": {
-    "head_radius": 8.0
-  },
-  "planning": {
-    "planner": "informed_rrtstar",
-    "range": 0.0,
-    "goal_bias": 0.05,
-    "safety_margin": 2.0,
-    "planning_time": 1.5,
-    "validity_resolution": 2.0,
-    "smoothing_samples": 80,
-    "simplify_solution": true
-  },
   "motion_limits": {
-    "max_velocity": [800.0, 800.0, 300.0],
-    "max_acceleration": [3000.0, 3000.0, 1200.0],
-    "max_jerk": [20000.0, 20000.0, 8000.0],
+    "max_acceleration": [
+      3000.0,
+      3000.0,
+      1200.0
+    ],
+    "max_jerk": [
+      20000.0,
+      20000.0,
+      8000.0
+    ],
+    "max_velocity": [
+      800.0,
+      800.0,
+      300.0
+    ],
     "sample_dt": 0.004
-  },
-  "request": {
-    "start": {
-      "xyz": [0.0, 0.0, 50.0]
-    },
-    "goal": {
-      "xyz": [220.0, 220.0, 50.0]
-    }
   },
   "obstacles": [
     {
-      "type": "box",
-      "center": [100.0, 100.0, 50.0],
-      "size": [60.0, 60.0, 100.0]
+      "center": [
+        90.0,
+        100.0,
+        50.0
+      ],
+      "size": [
+        60.0,
+        60.0,
+        100.0
+      ],
+      "type": "box"
     },
     {
-      "type": "sphere",
-      "center": [35.0, 180.0, 60.0],
-      "radius": 12.0
+      "center": [
+        35.0,
+        180.0,
+        60.0
+      ],
+      "radius": 12.0,
+      "type": "sphere"
     },
     {
-      "type": "cylinder",
-      "center": [180.0, 35.0, 50.0],
+      "center": [
+        100.0,
+        35.0,
+        50.0
+      ],
+      "height": 80.0,
       "radius": 10.0,
-      "height": 80.0
+      "type": "cylinder"
     },
     {
-      "type": "ascii_stl",
-      "file": "simple_triangle_obstacle.stl"
+      "file": "D:\\data\\workspace\\github\\laser-airmove-planner\\examples\\simple_triangle_obstacle.stl",
+      "type": "ascii_stl"
+    },
+    {
+      "file": "D:\\data\\workspace\\github\\laser-airmove-planner\\examples\\11.stl",
+      "type": "ascii_stl"
     }
-  ]
+  ],
+  "planning": {
+    "goal_bias": 0.05,
+    "planner": "rrtconnect",
+    "planning_time": 10.0,
+    "range": 0.0,
+    "safety_margin": 1.0,
+    "simplify_solution": true,
+    "smoothing_samples": 80,
+    "validity_resolution": 1.0
+  },
+  "request": {
+    "goal": {
+      "xyz": [
+        28.0,
+        10.0,
+        5.0
+      ]
+    },
+    "start": {
+      "xyz": [
+        -8.0,
+        -15.0,
+        5.0
+      ]
+    }
+  },
+  "tool": {
+    "head_radius": 1.0
+  },
+  "workspace": {
+    "max": [
+      300.0,
+      300.0,
+      200.0
+    ],
+    "min": [
+      -100.0,
+      -100.0,
+      -100.0
+    ]
+  }
 }

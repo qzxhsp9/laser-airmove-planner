@@ -74,19 +74,20 @@ if(AIRMOVE_BUILD_QT_DEMO)
     if(WIN32)
         get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
         get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-        find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
-        if(WINDEPLOYQT_EXECUTABLE)
-            add_custom_command(TARGET airmove_qt_demo POST_BUILD
-                COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                    "$<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release>"
-                    --no-translations
-                    "$<TARGET_FILE:airmove_qt_demo>"
-                COMMENT "Deploying Qt runtime dependencies for airmove_qt_demo"
-                VERBATIM
-            )
-        else()
-            message(WARNING "windeployqt was not found. Add Qt bin to PATH before running airmove_qt_demo.")
-        endif()
+        add_custom_command(TARGET airmove_qt_demo POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${QT_BIN_DIR}/Qt6Core$<$<CONFIG:Debug>:d>.dll"
+                "${QT_BIN_DIR}/Qt6Gui$<$<CONFIG:Debug>:d>.dll"
+                "${QT_BIN_DIR}/Qt6Widgets$<$<CONFIG:Debug>:d>.dll"
+                "$<TARGET_FILE_DIR:airmove_qt_demo>"
+            COMMAND "${CMAKE_COMMAND}" -E make_directory
+                "$<TARGET_FILE_DIR:airmove_qt_demo>/platforms"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${QT_BIN_DIR}/../plugins/platforms/qwindows$<$<CONFIG:Debug>:d>.dll"
+                "$<TARGET_FILE_DIR:airmove_qt_demo>/platforms"
+            COMMENT "Copying minimal Qt runtime dependencies for airmove_qt_demo"
+            VERBATIM
+        )
     endif()
 endif()
 

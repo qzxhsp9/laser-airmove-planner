@@ -1,0 +1,67 @@
+{
+  "motion_limits": {
+    "max_acceleration": [
+      3000.0,
+      3000.0,
+      1200.0
+    ],
+    "max_jerk": [
+      20000.0,
+      20000.0,
+      8000.0
+    ],
+    "max_velocity": [
+      800.0,
+      800.0,
+      300.0
+    ],
+    "sample_dt": 0.004
+  },
+  "obstacles": [
+    {
+      "file": "D:\\data\\workspace\\github\\laser-airmove-planner\\examples\\11.stl",
+      "type": "ascii_stl"
+    }
+  ],
+  "planning": {
+    "goal_bias": 0.05,
+    "planner": "rrtstar",
+    "planning_time": 1.5,
+    "range": 0.0,
+    "safety_margin": 2.0,
+    "simplify_solution": true,
+    "smoothing_samples": 80,
+    "validity_resolution": 2.0
+  },
+  "request": {
+    "goal": {
+      "xyz": [
+        40.0,
+        0.0,
+        0.0
+      ]
+    },
+    "start": {
+      "xyz": [
+        -10.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "tool": {
+    "head_radius": 8.0
+  },
+  "workspace": {
+    "max": [
+      300.0,
+      300.0,
+      200.0
+    ],
+    "min": [
+      -100.0,
+      -100.0,
+      0.0
+    ]
+  }
+}

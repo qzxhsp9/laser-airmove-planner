@@ -8,6 +8,7 @@
 
 - 选择 JSON 配置文件。
 - 选择规划输出目录。
+- 在右侧 `Scene editor` 中结构化编辑并保存 JSON 配置文件。
 - 调整常用规划参数：
   - `planner`
   - `planning_time`
@@ -20,6 +21,7 @@
 - 表格展示 smoothed path。
 - 显示规划摘要指标。
 - 内置轻量 3D 交互视图，支持旋转、平移、缩放。
+- 3D 视图显示 box、sphere、cylinder 和 `ascii_stl` 障碍物线框。
 - 调用 `tools/visualize_path.py` 导出高质量 PNG 可视化图片。
 - 保留运行日志，便于演示和排查。
 
@@ -64,6 +66,12 @@ cmake --build build-qt --config Debug
 
 项目的 CMake 已经在构建 `airmove_qt_demo` 后自动调用 `windeployqt`，正常情况下会把 Qt DLL 和 `platforms/qwindowsd.dll` 部署到 exe 附近。
 
+当前工程改为复制 Qt Demo 的最小运行依赖，不再强依赖 `windeployqt`。构建日志应出现：
+
+```text
+Copying minimal Qt runtime dependencies for airmove_qt_demo
+```
+
 如果运行时仍提示缺少 Qt DLL，可先在当前 PowerShell 中加入 Qt bin 目录：
 
 ```powershell
@@ -93,8 +101,10 @@ airmove_qt_output
 ```
 
 4. 按需微调参数。
-5. 点击 `运行规划`。
-6. 查看左侧摘要和 `smoothed path` 表格。
+5. 如需修改配置，在右侧 `Scene editor` 中编辑场景。
+6. 点击 `Save scene config` 保存配置，并同步刷新 `Interactive 3D View`。
+7. 点击 `Run planning`。
+8. 查看左侧摘要和 `smoothed path` 表格。
 7. 在 `Interactive 3D View` 标签页拖拽查看路径。
 8. 点击 `Export PNG visualization` 可导出 `path_3d.png` 等高质量图片。
 
@@ -112,6 +122,15 @@ Right drag  : pan
 Mouse wheel : zoom
 Reset 3D view button: reset camera
 ```
+
+配置制作入口：
+
+```text
+Save scene config : 在 Scene editor 中生成 JSON，保存到当前配置文件，并刷新 3D 视图
+Reload config     : 从磁盘重新读取当前配置文件
+```
+
+`Run planning` 和 `Export PNG visualization` 会在配置有未保存修改时先保存当前配置。
 
 ## 5. 常见问题
 
@@ -175,10 +194,13 @@ Value: C:/Qt/6.11.0/msvc2022_64
 
 这不是编译错误，而是运行时 DLL 搜索路径问题。`Qt6Widgetsd.dll` 中的 `d` 表示 Debug 版本 Qt DLL。
 
-当前 CMake 会在构建后自动执行：
+当前 CMake 会在构建后复制最小 Qt 运行依赖：
 
 ```text
-windeployqt --debug --no-translations build-qt\Debug\airmove_qt_demo.exe
+Qt6Cored.dll
+Qt6Guid.dll
+Qt6Widgetsd.dll
+platforms\qwindowsd.dll
 ```
 
 如果你是从 CMake GUI 或 Visual Studio 构建，先重新生成并完整构建 `airmove_qt_demo`，不要只运行旧 exe。
@@ -240,6 +262,50 @@ Debug + C:\Qt\6.11.0\msvc2022_64\bin
 Release + windeployqt
 ```
 
+### 5.4 Export PNG visualization 找不到脚本
+
+典型现象：
+
+```text
+Cannot find tools/visualize_path.py
+```
+
+Qt Demo 会从以下位置向上查找仓库根目录：
+
+- 当前工作目录
+- `airmove_qt_demo.exe` 所在目录
+- 当前配置文件所在目录
+
+只要目录树中存在：
+
+```text
+tools/visualize_path.py
+CMakeLists.txt
+```
+
+即可自动定位。若仍失败，优先检查是否把 exe 单独复制到了仓库外部运行。演示时建议直接从仓库构建目录运行：
+
+```powershell
+.\build-qt\Debug\airmove_qt_demo.exe
+```
+
+### 5.5 ascii_stl 不显示
+
+Qt Demo 当前支持显示 JSON 中的 `ascii_stl` 障碍物线框，例如：
+
+```json
+{
+  "type": "ascii_stl",
+  "file": "simple_triangle_obstacle.stl"
+}
+```
+
+相对路径会按配置文件所在目录解析。若不显示，检查：
+
+- STL 是否为 ASCII STL，不是 binary STL。
+- `file` 路径是否相对于 JSON 配置文件可访问。
+- STL 是否至少包含一个三角面片。
+
 ## 6. 演示建议
 
 推荐演示顺序：
@@ -267,3 +333,36 @@ Release + windeployqt
 - 使用 Qt 3D 或 VTK/Open3D 做真正交互式 3D 场景。
 - 将 Python 可视化改为异步执行，避免界面阻塞。
 - 增加 planner 参数 preset，便于现场演示对比。
+## Scene editor 场景配置界面
+
+`Scene editor` 位于界面右侧，是当前推荐的 config 制作入口，不再要求用户直接手写完整 JSON。它用于把实际遇到的空移避障场景结构化录入，然后生成 planner 可读取的 JSON 输入文件。
+
+当前支持编辑：
+
+- 工作空间边界：`workspace min/max`
+- 起点和终点：`start xyz`、`goal xyz`
+- 工具头半径：`tool head radius`
+- 运动限制：最大速度、最大加速度、最大 jerk、采样周期
+- 障碍物表：`box`、`sphere`、`cylinder`、`ascii_stl`
+- 常用规划参数：左侧 `Planner Params` 区域
+
+推荐工作流：
+
+1. 在右侧 `Scene editor` 中编辑场景。
+2. 填写工作空间、起点、终点和工具头半径。
+3. 在障碍物表中添加或修改障碍物。
+4. 点击 `Save scene config`，生成 JSON、保存输入文件，并刷新 `Interactive 3D View`。
+5. 点击 `Run planning` 执行规划。
+
+点击 `Run planning` 或 `Export PNG visualization` 时，程序会先把 `Scene editor` 中的结构化场景生成 JSON，再保存并继续执行。
+
+障碍物表字段说明：
+
+| type | cx/cy/cz | size/radius/file | size_y/height | size_z |
+| --- | --- | --- | --- | --- |
+| `box` | 中心点 | X 尺寸 | Y 尺寸 | Z 尺寸 |
+| `sphere` | 球心 | 半径 | 留空 | 留空 |
+| `cylinder` | 圆柱中心 | 半径 | 高度 | 留空 |
+| `ascii_stl` | 暂不使用 | STL 文件路径 | 留空 | 留空 |
+
+`ascii_stl` 路径建议使用相对 config 文件所在目录的相对路径，便于项目移动和演示打包。Qt Demo 会在交互 3D 视图中加载 ASCII STL 并以线框方式显示。
